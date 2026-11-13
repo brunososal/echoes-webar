@@ -73,19 +73,54 @@
 
 #quickMute{position:absolute;right:15px;top:calc(env(safe-area-inset-top) + 126px);z-index:12;border:1px solid #ffc2a0;background:#853f34;color:#fff;border-radius:25px;padding:11px 15px;font-weight:850;font-size:12px;box-shadow:0 5px 17px #0008;pointer-events:auto}
 #quickMute[hidden]{display:none!important}
+
+/* ECHOES v0.9 — floating quick tools. Keep the live scene unobscured. */
+#sheet{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 113px);width:auto;max-width:410px;max-height:min(35dvh,300px);margin:auto;border-radius:18px;padding:12px 13px 14px;box-shadow:0 9px 32px #0009;transform:translateY(calc(100% + 150px));background:rgba(7,29,39,.95);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+#sheet.open{transform:translateY(0)}
+#shade{display:none!important}
+#sheet h2{font-size:15px;margin:0 0 8px;font-weight:780;letter-spacing:-.015em}
+#close{height:28px;width:28px;font-size:18px}
+#sheet p{margin:5px 0 10px;font-size:11px;line-height:1.4}
+#sheet label{margin:9px 0 6px;font-size:10px}
+#sheet .grid,#sheet .audioPreset{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+#sheet .choice{padding:9px 8px;min-height:37px;font-size:11px;border-radius:10px;text-align:center}
+#sheet .audioWarn{padding:8px;font-size:11px}
+#sheet .audioConfirm{margin:7px 0;font-size:11px}
+#sheet .audioHelp{padding:8px;font-size:10px;margin:6px 0}
+#sheet .audioMeter{height:7px}
+#sheet .audioBar{margin:4px 0}
+#sheet .audioBar strong{font-size:19px}
+#sheet .audioActions{margin:7px 0}
+#sheet #info{margin-top:8px;padding:8px;font-size:10px}
+#sheet .progress-track{margin:6px 0 10px}
+#sheet .challenge-item{margin-bottom:7px;font-size:10px}
+#sheet .facts{padding:7px;margin-bottom:6px}
+#sheet .facts p{margin:4px 0 0}
+#quickActions{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 162px);left:12px;right:12px;display:flex;justify-content:center;gap:7px;z-index:11;pointer-events:auto}
+#quickActions button{border:1px solid rgba(135,219,206,.45);border-radius:35px;padding:8px 11px;color:#e3fff8;background:rgba(3,30,41,.77);backdrop-filter:blur(12px);font-size:11px;font-weight:760;box-shadow:0 4px 17px #0005}
+#quickActions button.active{background:rgba(24,122,104,.92);border-color:#85ffe0}
+#quickActions button:disabled{opacity:.45}
+#quickMic.active{color:#86ffe4}
+#taskstatus{top:calc(env(safe-area-inset-top) + 115px);left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:90%;padding:5px 10px;font-size:10px;background:rgba(5,29,38,.65)}
+.tag{font-size:9px;top:calc(env(safe-area-inset-top) + 73px)}
+#message{top:calc(env(safe-area-inset-top) + 88px);font-size:10px;opacity:.84}
+.toolbar button{min-height:49px}
+#sheet.open~#launch{pointer-events:auto}
+@media(min-width:640px){#sheet{bottom:116px}#quickActions{bottom:160px}}
+@media(max-height:640px){#sheet{max-height:42dvh;bottom:calc(env(safe-area-inset-bottom) + 103px)}#quickActions{bottom:calc(env(safe-area-inset-bottom) + 139px)}.hud{margin-bottom:8px}.toolbar button{min-height:43px}}
 </style>
 </head><body>
 <canvas id="camerafeed"></canvas>
 <div id="shell">
-<div class="top"><a class="back" href="./">← Simulación</a><div class="logo">ECHOES<span>.</span></div><button id="placeSource" class="locate">⊕ Ubicar fuente</button><button id="recenter">◎ Reiniciar</button></div>
-<div class="tag">RA ESPACIAL · FUENTE ELEGIDA POR TI · NO ACÚSTICA MEDIDA</div><div id="taskstatus">Coloca una fuente virtual y experimenta con controles preventivos.</div><button id="quickMute" hidden>■ Silenciar audio</button>
+<div class="top"><a class="back" href="./">← Simulación</a><div class="logo">ECHOES<span>.</span></div><button id="placeSource" class="locate">⊕ Fuente</button><button id="recenter" aria-label="Reiniciar RA">↺</button></div>
+<div class="tag">RA ESPACIAL · SONIDO AMBIENTAL · SIMULACIÓN</div><div id="taskstatus">Toca «Fuente» para ubicar el campo virtual</div><button id="quickMute" hidden>■ Silenciar audio</button>
 <div id="message" role="status">Inicia la cámara y mueve lentamente el teléfono para establecer el seguimiento.</div>
 <div class="target" id="target"></div>
-<div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>HUELLA SIMULADA · NO dBA</small><strong id="status">SIMULADA</strong><small id="micMeterStatus">MICRÓFONO APAGADO</small><small id="sourceStatus">Referencia no elegida</small></div></div>
-<div class="toolbar"><button data-widget="scene"><span class="glyph">▦</span>Entorno</button><button data-widget="control"><span class="glyph">♢</span>Control</button><button data-widget="time"><span class="glyph">◷</span>Tiempo</button><button data-widget="effects"><span class="glyph">◉</span>Efectos</button><button data-widget="audio"><span class="glyph">♫</span>Escuchar</button><button data-widget="mission"><span class="glyph">✓</span>Misión</button></div></div>
+<div id="quickActions"><button id="quickBarrier" aria-label="Alternar barrera">▥ Barrera</button><button id="quickPpe" aria-label="Alternar protección auditiva">◈ EPP</button><button id="quickMic" aria-label="Activar o apagar micrófono">● Micrófono</button></div><div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>HUELLA SIMULADA · NO dBA</small><strong id="status">SIMULADA</strong><small id="micMeterStatus">MICRÓFONO APAGADO</small><small id="sourceStatus">Referencia no elegida</small></div></div>
+<div class="toolbar"><button data-widget="scene"><span class="glyph">▦</span>Escena</button><button data-widget="control"><span class="glyph">♢</span>Control</button><button data-widget="time"><span class="glyph">◷</span>Tiempo</button><button data-widget="effects"><span class="glyph">◉</span>Efectos</button><button data-widget="audio"><span class="glyph">♫</span>Audio</button><button data-widget="mission"><span class="glyph">✓</span>Reto</button></div></div>
 <div id="shade"></div>
 <div id="sheet"><button id="close" aria-label="Cerrar">×</button><h2 id="sheetTitle"></h2><div id="sheetBody"></div></div>
-<div id="launch"><div class="launch"><small>ECHOES / LABORATORIO ESPACIAL / V0.8</small><h1>El ruido deja <span style="color:#76f4d7">huella.</span></h1><p>Coloca un campo acústico virtual en tu entorno. Al moverte, las ondas deberán permanecer en su posición tridimensional.</p><div class="note"><b>Laboratorio espacial:</b> selecciona dónde simular una fuente, coloca una barrera virtual y observa qué pasa con la representación desde distintas posiciones. Es una metáfora educativa; no hay mapa acústico real. No operes máquinas ni camines por el tráfico durante la prueba.</div><button id="start">Iniciar RA espacial</button><div id="bootStatus" style="color:#9cd7d5;font-size:12px;margin-bottom:15px">Requiere Safari, permiso de cámara e internet.</div><a href="./">Volver a simulación</a></div></div>
+<div id="launch"><div class="launch"><small>ECHOES / LABORATORIO ESPACIAL / V0.8</small><h1>El ruido deja <span style="color:#76f4d7">huella.</span></h1><p>Coloca un campo acústico virtual en tu entorno. Al moverte, las ondas deberán permanecer en su posición tridimensional.</p><div class="note"><b>Laboratorio espacial:</b> selecciona dónde simular una fuente, coloca una barrera virtual y observa qué pasa con la representación desde distintas posiciones. Es una metáfora educativa; no hay mapa acústico real. No operes máquinas ni camines por el tráfico durante la prueba.</div><button id="start">Iniciar RA + micrófono</button><div id="bootStatus" style="color:#9cd7d5;font-size:12px;margin-bottom:15px">Se solicitarán permisos de cámara y micrófono. La escucha en audífonos permanece apagada.</div><a href="./">Volver a simulación</a></div></div>
 </div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js';
