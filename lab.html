@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05151f"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>ECHOES · RA espacial</title>
+<!-- Engine binary license: https://github.com/8thwall/engine/blob/main/LICENSE -->
+<script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@8thwall/landing-page@1/dist/landing-page.js"></script>
+<style>
+:root{--ink:#061923;--mint:#78efda;--glass:rgba(5,24,34,.82);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4ffff;background:#061923}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}button,input{font:inherit}button{cursor:pointer}
+#camerafeed{position:absolute;inset:0;display:block;width:100%;height:100%;background:#0a1e28}
+#shell{position:fixed;inset:0;pointer-events:none;z-index:10;background:linear-gradient(180deg,rgba(3,14,24,.8),transparent 21%,transparent 67%,rgba(2,12,21,.88))}
+#shell button,#shell a,#sheet{pointer-events:auto}
+.top{position:absolute;left:14px;right:14px;top:calc(env(safe-area-inset-top) + 13px);display:flex;gap:9px;align-items:center;justify-content:space-between}
+.back{border:1px solid #4d7e80;text-decoration:none;background:rgba(7,25,35,.8);color:white;padding:11px 12px;border-radius:12px;font-size:12px}
+.logo{margin-right:auto;margin-left:3px;font-size:18px;font-weight:900;letter-spacing:.17em}.logo span{color:var(--mint)}
+.top button,.bottom button,.launch button,.choice{border:1px solid #547d80;border-radius:12px;color:#f0ffff;background:rgba(9,34,44,.82);padding:11px 13px;font-size:12px;font-weight:750;backdrop-filter:blur(12px)}
+.tag{position:absolute;left:15px;right:15px;top:calc(env(safe-area-inset-top) + 80px);text-align:center;font-size:11px;color:#d9fffa;letter-spacing:.04em;text-shadow:0 2px 6px #00151f}
+.target{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);height:44px;width:44px;border:1px solid #d9fffb55;border-radius:50%;opacity:.45}
+.target:after,.target:before{content:"";position:absolute;background:#d9fffb55}.target:after{width:25px;height:1px;left:9px;top:21px}.target:before{height:25px;width:1px;left:21px;top:9px}
+.bottom{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 15px);left:10px;right:10px;max-width:640px;margin:auto}
+.hud{display:flex;gap:9px;justify-content:space-between;align-items:end;margin:0 5px 12px}
+.hud strong{font-size:20px;color:#abffed}.hud small{display:block;color:#bfd5d9;font-size:10px;line-height:1.4}
+.hud .state{background:rgba(4,24,32,.65);border:1px solid #5f9b9955;border-radius:12px;padding:10px}
+.toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;border:1px solid #6eada855;background:#081e2bf0;border-radius:17px;padding:8px}
+.toolbar button{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;padding:10px 4px;min-height:55px;border:0;background:none;font-size:10px}
+.toolbar .glyph{font-size:22px}
+#launch{position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,#164b53,#05141e 70%);display:flex;align-items:center;justify-content:center;padding:22px;z-index:12;pointer-events:auto}
+.launch{max-width:370px;text-align:center}.launch small{letter-spacing:.18em;font-size:11px;color:#80ddca;font-weight:800}.launch h1{font-size:clamp(35px,10vw,55px);line-height:1.02;margin:12px 0;letter-spacing:-.06em}.launch p{color:#b1cdd1;line-height:1.55;font-size:14px}.launch button{border-color:#72ebd8;background:#087b7b;font-size:15px;padding:15px 25px;width:100%;margin:14px 0}.launch a{color:#97f6e6;font-size:13px}.note{font-size:12px;color:#bbd4d6;text-align:left;background:#10303b;border-left:3px solid #61d8c6;padding:12px;line-height:1.55}
+#message{position:absolute;top:calc(env(safe-area-inset-top) + 112px);left:15px;right:15px;color:#b9f9e9;text-align:center;font-size:11px;line-height:1.4;text-shadow:0 2px 4px #001}
+#sheet{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(135deg,#153b45,#051b29);border:1px solid #6dd8c977;border-radius:24px 24px 0 0;padding:20px 19px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(110%);transition:transform .24s;max-height:72vh;overflow:auto;z-index:14;pointer-events:auto}
+#sheet.open{transform:translateY(0)}#sheet h2{margin:0 0 13px;font-size:22px;letter-spacing:-.03em}#sheet p{font-size:12px;line-height:1.55;color:#b8d5d7}#sheet label{display:block;font-size:11px;color:#93d2cf;text-transform:uppercase;letter-spacing:.12em;margin:18px 0 9px;font-weight:750}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choice{min-height:51px;text-align:left}.choice.on{background:#0f7776;border-color:#77fce4}input[type=range]{width:100%;accent-color:#66f0d8}#close{float:right;color:#eafff8;border:0;background:#30515a;border-radius:50%;height:32px;width:32px;font-size:20px}
+#shade{position:absolute;inset:0;background:#0006;z-index:13;display:none;pointer-events:auto}#shade.open{display:block}
+#info{margin-top:14px;border-left:3px solid #69decf;background:#17414a66;padding:12px;border-radius:7px;font-size:12px;line-height:1.5}
+#status{font-variant-numeric:tabular-nums}
+
+.toolbar{grid-template-columns:repeat(5,1fr)}
+.top{flex-wrap:wrap}.top .back{flex:none}
+.top .locate{background:#0b7b77;border-color:#56dccb;color:#fff}
+.top .locate.active{background:#d2fff4;color:#0a3337}
+#target{display:none;z-index:11;opacity:.86;width:64px;height:64px;border:2px solid #a4ffe8;box-shadow:0 0 0 18px #67edcf12}
+#target:before{height:35px;top:13px;left:30px;background:#a4ffe8}
+#target:after{width:35px;top:30px;left:13px;background:#a4ffe8}
+#taskstatus{position:absolute;top:calc(env(safe-area-inset-top) + 157px);left:20px;right:20px;z-index:10;text-align:center;color:#ddfbef;font-size:11px;text-shadow:0 1px 4px #001c22;background:#031d2ca8;padding:8px;border-radius:11px;pointer-events:none}
+.challenge-item{display:flex;gap:10px;margin-bottom:11px;align-items:flex-start;font-size:12px;line-height:1.45;color:#d8eeec}
+.challenge-dot{width:23px;height:23px;border:1px solid #73cbbb;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:800;color:#d9f8ee}
+.challenge-dot.done{background:#1c9084;border-color:#73f9d5;color:#fff}
+.progress-track{height:8px;border-radius:8px;overflow:hidden;background:#264b54;margin:12px 0 20px}
+.progress-track>div{height:100%;background:linear-gradient(90deg,#24b9a8,#91ffd8);transition:width .2s}
+.facts{padding:10px 11px;margin-bottom:9px;border:1px solid #5b898466;border-radius:10px;background:#1434409c}
+.facts b{font-size:13px}.facts p{margin:7px 0 0}
+.quiz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.choice.correct{background:#14796b;border-color:#8cffd8}.choice.wrong{background:#644545;border-color:#d49e92}
+#sourceStatus{color:#8af8dd!important}
+@media(max-width:390px){.top{gap:5px}.top button,.top a{padding:9px 8px;font-size:10px}.logo{font-size:14px}.toolbar button{font-size:9px;padding:7px 1px}}
+</style>
+</head><body>
+<canvas id="camerafeed"></canvas>
+<div id="shell">
+<div class="top"><a class="back" href="./">← Simulación</a><div class="logo">ECHOES<span>.</span></div><button id="placeSource" class="locate">⊕ Ubicar fuente</button><button id="recenter">◎ Reiniciar</button></div>
+<div class="tag">RA ESPACIAL · FUENTE ELEGIDA POR TI · NO ACÚSTICA MEDIDA</div><div id="taskstatus">Coloca una fuente virtual y experimenta con controles preventivos.</div>
+<div id="message" role="status">Inicia la cámara y mueve lentamente el teléfono para establecer el seguimiento.</div>
+<div class="target" id="target"></div>
+<div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>VISUALIZACIÓN · NO dBA</small><strong id="status">SIMULADA</strong></div></div>
+<div class="toolbar"><button data-widget="scene"><span class="glyph">▦</span>Entorno</button><button data-widget="control"><span class="glyph">♢</span>Control</button><button data-widget="time"><span class="glyph">◷</span>Tiempo</button><button data-widget="effects"><span class="glyph">◉</span>Efectos</button><button data-widget="mission"><span class="glyph">✓</span>Misión</button></div></div>
+<div id="shade"></div>
+<div id="sheet"><button id="close" aria-label="Cerrar">×</button><h2 id="sheetTitle"></h2><div id="sheetBody"></div></div>
+<div id="launch"><div class="launch"><small>ECHOES / LABORATORIO ESPACIAL / V0.6</small><h1>El ruido deja <span style="color:#76f4d7">huella.</span></h1><p>Coloca un campo acústico virtual en tu entorno. Al moverte, las ondas deberán permanecer en su posición tridimensional.</p><div class="note"><b>Laboratorio espacial:</b> selecciona dónde simular una fuente, coloca una barrera virtual y observa qué pasa con la representación desde distintas posiciones. Es una metáfora educativa; no hay mapa acústico real. No operes máquinas ni camines por el tráfico durante la prueba.</div><button id="start">Iniciar RA espacial</button><div id="bootStatus" style="color:#9cd7d5;font-size:12px;margin-bottom:15px">Requiere Safari, permiso de cámara e internet.</div><a href="./">Volver a simulación</a></div></div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js';
+window.THREE=THREE;
+const $=(s)=>document.querySelector(s);
+const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false};
+let source=null, xrScene=null, xrCamera=null, wall=null, floorGuard=null, stream=null,ac=null,analyser=null,samples=null,materialParts=[],rings=[],lastTime=0,frame=0,baseDistance=null,lastHud=0,tracking='INITIALIZING';
+const base={cnc:.9,office:.46,street:.7};
+const names={cnc:'CNC',office:'Oficina',street:'Calle'};
+const notify=(msg)=>{$('#message').textContent=msg};
+const score=()=>{let e=base[state.scene]*(state.barrier?.75:1)*(state.distance?.65:1)*(state.protect&&state.scene==='cnc'?.57:1);return Math.min(100,Math.round(e*Math.sqrt(state.hours/8)*100))};
+function renderHUD(){$('#scenario').textContent=names[state.scene];$('#status').textContent=state.mic?'MIC. ACTIVO':'SIMULADA';if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}}
+function createSoundField(){
+const group=new THREE.Group();
+const glass=new THREE.MeshPhysicalMaterial({color:0x3adccb,metalness:.12,roughness:.28,transmission:.08,transparent:true,opacity:.67,side:THREE.DoubleSide});
+const emitter=new THREE.Mesh(new THREE.IcosahedronGeometry(.18,1),glass);
+emitter.position.y=.36;group.add(emitter); materialParts.push(emitter);
+const pole=new THREE.Mesh(new THREE.CylinderGeometry(.028,.055,.45,8),new THREE.MeshBasicMaterial({color:0x4caaa7,transparent:true,opacity:.54}));pole.position.y=.22;group.add(pole);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(.4,48),new THREE.MeshBasicMaterial({color:0x2bb7a8,transparent:true,opacity:.09,side:THREE.DoubleSide,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.position.y=.02;group.add(floor);
+for(let i=0;i<6;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.45+i*.18,.007,6,100),new THREE.MeshBasicMaterial({color:i%2?0x70efff:0x58e6bd,transparent:true,opacity:.27,depthWrite:false}));ring.rotation.x=Math.PI/2.0;ring.position.y=.10+i*.06;group.add(ring);rings.push(ring)}
+for(let i=0;i<52;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.012+(i%5)*.002,5,5),new THREE.MeshBasicMaterial({color:0xb7fff1,transparent:true,opacity:.30,depthWrite:false}));const a=i*2.39996,r=.35+(i%20)*.045;m.position.set(Math.cos(a)*r,.13+(i%11)*.05,Math.sin(a)*r);group.add(m)}
+const accent=new THREE.Mesh(new THREE.RingGeometry(.31,.34,56),new THREE.MeshBasicMaterial({color:0xffc884,side:THREE.DoubleSide,transparent:true,opacity:.42}));accent.rotation.x=-Math.PI/2;accent.position.y=.03;group.add(accent);
+return group;
+}
+function scenePipeline(){return {name:'echoes-spatial-scene',
+onStart:({canvas})=>{const {scene,camera,renderer}=XR8.Threejs.xrScene();xrScene=scene;scene.add(new THREE.HemisphereLight(0xbbefff,0x234651,2));source=createSoundField();source.position.set(0,0,0);scene.add(source);camera.position.set(0,2,2);XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion});renderHUD();notify('Seguimiento espacial iniciado. Mira el objeto virtual y mueve lentamente el teléfono.');$('#target').style.display='none';},
+onUpdate:({processCpuResult})=>{const status=processCpuResult?.reality?.trackingStatus;if(status==='NORMAL')notify('Objeto anclado en el espacio. Puedes rodearlo con cuidado.');else if(status==='LIMITED')notify('Seguimiento limitado: apunta a superficies con textura y buena luz.')}
+}}
+function begin(){if(state.started)return; if(!window.XR8||!window.THREE){$('#bootStatus').textContent='El motor XR todavía no está cargado. Comprueba la conexión y vuelve a intentar.';return}
+try{const mods=[XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule()];if(window.XRExtras?.FullWindowCanvas)mods.push(XRExtras.FullWindowCanvas.pipelineModule());mods.push(scenePipeline());XR8.addCameraPipelineModules(mods);XR8.run({canvas:$('#camerafeed'),allowedDevices:XR8.XrConfig.device().MOBILE});state.started=true;$('#launch').style.display='none';notify('Cámara solicitada. Esperando seguimiento...');}catch(e){$('#bootStatus').textContent='No se pudo iniciar: '+e.message;console.error(e)}}
+$('#start').addEventListener('click',begin);
+window.addEventListener('xrloaded',()=>{$('#bootStatus').textContent='Motor espacial listo para iniciar.'});
+window.addEventListener('error',e=>{if(!state.started)$('#bootStatus').textContent='Error de carga: '+(e.message||'revisa conexión')});
+$('#recenter').addEventListener('click',()=>{if(!state.started)return;try{XR8.XrController.recenter();notify('Campo acústico reubicado frente a la cámara.')}catch(e){notify('No se pudo reubicar: '+e.message)}});
+function closePanel(){$('#sheet').classList.remove('open');$('#shade').classList.remove('open')}
+$('#close').addEventListener('click',closePanel);$('#shade').addEventListener('click',closePanel);
+function choice(label,key,val,selected){return '<button class="choice '+(selected?'on':'')+'" data-key="'+key+'" data-val="'+val+'">'+label+'</button>'}
+function openPanel(kind){
+const titles={scene:'Escenario',control:'Medidas preventivas',time:'Tiempo de exposición',audio:'Audio reactivo'};
+$('#sheetTitle').textContent=titles[kind];let body='';
+if(kind==='scene')body='<p>El contexto modifica la explicación y la animación, pero no identifica automáticamente fuentes reales.</p><div class="grid">'+choice('🏭 Taller CNC','scene','cnc',state.scene==='cnc')+choice('🏢 Oficina','scene','office',state.scene==='office')+choice('🚙 Calle','scene','street',state.scene==='street')+'</div>';
+if(kind==='control')body='<label>Intervenciones didácticas</label><div class="grid">'+choice('Sin barrera','barrier','off',!state.barrier)+choice('Con barrera','barrier','on',state.barrier)+choice('Cerca de fuente','distance','off',!state.distance)+choice('Más lejos','distance','on',state.distance)+'</div>'+(state.scene==='cnc'?'<label>Protección personal</label><div class="grid">'+choice('Sin EPP','protect','off',!state.protect)+choice('Con EPP ajustado','protect','on',state.protect)+'</div>':'')+'<div id="info">Las intervenciones son simbólicas. El EPP no reduce el sonido de la fuente.</div>';
+if(kind==='time')body='<p>Huella relativa por permanencia, sin unidad física ni equivalencia con dosis acústica.</p><label>Horas hipotéticas: <strong id="hVal">'+state.hours+'</strong></label><input id="hInput" type="range" min=".5" max="8" step=".5" value="'+state.hours+'"><div id="info">Huella ilustrativa: <strong id="score">'+score()+'</strong> / 100</div>';
+if(kind==='audio')body='<p>El micrófono modifica las ondas según la amplitud digital relativa. No mide dBA.</p><button class="choice on" id="micBtn">'+(state.mic?'Desactivar micrófono':'Activar micrófono')+'</button><label>Intensidad simulada</label><input id="intInput" type="range" min=".1" max="1" step=".05" value="'+state.intensity+'"><div id="info">La señal se procesa en tu teléfono sin grabaciones.</div>';
+$('#sheetBody').innerHTML=body;$('#shade').classList.add('open');$('#sheet').classList.add('open');
+document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{const k=b.dataset.key,v=b.dataset.val;if(k==='scene')state.scene=v;else state[k]=v==='on';renderHUD();openPanel(kind)});
+if($('#hInput'))$('#hInput').oninput=e=>{state.hours=Number(e.target.value);$('#hVal').textContent=state.hours;$('#score').textContent=score()};
+if($('#intInput'))$('#intInput').oninput=e=>{state.intensity=Number(e.target.value)};
+if($('#micBtn'))$('#micBtn').onclick=toggleMic;
+}
+document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.widget)));
+async function toggleMic(){if(state.mic){stream?.getTracks().forEach(t=>t.stop());stream=null;try{await ac?.close()}catch(e){}ac=null;analyser=null;state.mic=false;openPanel('audio');renderHUD();return}try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,autoGainControl:false,noiseSuppression:false}});ac=new(window.AudioContext||window.webkitAudioContext)();analyser=ac.createAnalyser();analyser.fftSize=1024;samples=new Uint8Array(analyser.fftSize);ac.createMediaStreamSource(stream).connect(analyser);state.mic=true;openPanel('audio');renderHUD();notify('Micrófono activo. No se guarda audio.')}catch(e){notify('No se pudo activar el audio: '+e.message)}}
+function tick(t){const dt=Math.min((t-lastTime)/1000||.016,.1);lastTime=t;let x=state.intensity;if(analyser){analyser.getByteTimeDomainData(samples);let s=0;for(const v of samples){const q=(v-128)/128;s+=q*q}x=Math.min(1,Math.pow(Math.sqrt(s/samples.length)*8,.7))}frame+=dt*(.4+x*.7);if(source){const factor=(state.barrier?.72:1)*(state.distance?.75:1);rings.forEach((ring,i)=>{const pulse=(frame+i/6)%1;const scale=.5+pulse*1.15;ring.scale.setScalar(scale*factor);ring.material.opacity=(.45-pulse*.37)*(.5+x*.8)});materialParts.forEach(m=>m.rotation.y=frame*.3);}
+requestAnimationFrame(tick)}
+requestAnimationFrame(tick);
+window.addEventListener('pagehide',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());if(state.started&&window.XR8)try{XR8.stop()}catch(e){}});
+</script></body></html>
