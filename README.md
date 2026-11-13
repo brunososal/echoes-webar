@@ -4,6 +4,8 @@
 
 **Abrir:** https://brunososal.github.io/echoes-webar/
 
+**Probar RA espacial (beta):** https://brunososal.github.io/echoes-webar/ar.html
+
 ## Experiencia actual
 
 La interfaz ocupa la pantalla disponible y se maneja como una aplicación móvil. Su escenario es el centro de la experiencia; los controles aparecen como cinco widgets flotantes.
@@ -14,7 +16,7 @@ La interfaz ocupa la pantalla disponible y se maneja como una aplicación móvil
 - **Efectos:** fichas de pérdida auditiva, acúfenos, fatiga y comunicación.
 - **Audio:** micrófono real para animar ondas o intensidad simulada para demostración.
 
-El botón **Cámara** activa una vista real del entorno y superpone ondas visuales **sin marcador Hiro**. Al volver a **Simulación**, se muestran las escenas ilustradas. No es una localización acústica ni un mapa real de propagación.
+El botón **RA espacial** abre `/ar.html`, una prueba de seguimiento espacial sin Hiro mediante el motor 8th Wall Engine Binary (SLAM). Se genera un campo acústico virtual en el espacio y el botón **Reubicar** permite recentrar el campo. Debe probarse en Safari de un iPhone físico: la publicación y la verificación de sintaxis no equivalen a validar su seguimiento. No identifica la fuente real del ruido ni mide propagación acústica.
 
 ## En iPhone
 
@@ -31,6 +33,11 @@ Las ilustraciones y el modo cámara requieren pruebas en iPhone real para caract
 ## Historia
 
 - v0.3: primer demo con controles y WebAR mediante Hiro.
-- v0.4: rediseño completo a interfaz inmersiva móvil con widgets, tres ilustraciones y cámara sin marcador.
+- v0.4: rediseño completo a interfaz inmersiva móvil con widgets y tres ilustraciones.
+- v0.5 (experimental): RA espacial mediante SLAM, campo de ondas 3D anclado sin Hiro y widgets de controles educativos. Se necesita validar el seguimiento en iPhone.
 
 [Marcador Hiro (legado opcional)](https://brunososal.github.io/echoes-webar/marker.html). Ya no es necesario para la experiencia principal.
+
+## Motor AR espacial
+
+El modo espacial emplea el motor 8th Wall Engine Binary y three.js de acuerdo con la [licencia del motor](https://github.com/8thwall/engine/blob/main/LICENSE). El código de aplicación y los efectos 3D son propios de este prototipo; el motor SLAM es un binario externo bajo licencia de uso limitado. La RA depende de recursos CDN y permisos del navegador. Safari iOS no expone todavía WebXR inmersivo de forma general; la experiencia utiliza el motor de seguimiento del video directamente.
