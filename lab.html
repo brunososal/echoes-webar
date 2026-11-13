@@ -308,7 +308,7 @@ function openPanel(kind){
  const vol=$('#volInput');if(vol)vol.oninput=()=>{state.monitorVolume=Number(vol.value);const label=$('#volValue');if(label)label.textContent=vol.value+'%';updateAudioProcessing()};
  const cal=$('#calibrateBtn');if(cal)cal.onclick=()=>{
   const n=Number($('#refInput')?.value);
-  if(!state.mic||!Number.isFinite(n)||n<40||n>110){notify('Activa el micrófono e introduce una referencia externa de 40 a 110 dB.');return}
+  if(!state.mic||state.digitalDb < -78||!Number.isFinite(n)||n<40||n>110){notify('Activa el micrófono e introduce una referencia externa de 40 a 110 dB.');return}
   state.refDb=n;state.calOffset=n-state.digitalDb;logEvent('calibracion_referencia','un punto externo, no normativa');notify('Referencia aplicada a esta sesión; lectura orientativa no certificada.');openPanel('audio');
  };
  const resetCal=$('#resetCalBtn');if(resetCal)resetCal.onclick=()=>{state.calOffset=null;state.refDb=null;openPanel('audio')};
@@ -399,23 +399,37 @@ async function toggleMic(){
 }
 function tick(t){
  const dt=Math.min((t-lastTime)/1000||.016,.1);lastTime=t;
- let x=state.intensity;
- if(analyser&&samples){
-   analyser.getByteTimeDomainData(samples);let s=0;
-   for(const v of samples){const q=(v-128)/128;s+=q*q}
-   x=Math.min(1,Math.pow(Math.sqrt(s/samples.length)*8,.7));
+ let motion=state.intensity;
+ if(analyser&&samples&&state.mic){
+   analyser.getByteTimeDomainData(samples);
+   let sum=0;for(const val of samples){const z=(val-128)/128;sum+=z*z}
+   const rms=Math.sqrt(sum/samples.length);
+   state.digitalDb=rms>0.00001?Math.max(-100,20*Math.log10(rms)):-100;
+   state.relativeLevel=clamp((state.digitalDb+78)/70,0,1);
+   motion=Math.min(1,Math.pow(rms*8,.70));
  }
- frame+=dt*(.4+x*.7);
+ frame+=dt*(.4+motion*.7);
  if(source){
-   // EPP and virtual barrier do NOT change emission at the source.
-   rings.forEach((ring,i)=>{
-      const pulse=(frame+i/6)%1;
-      ring.scale.setScalar(.5+pulse*1.15);
-      ring.material.opacity=(.45-pulse*.37)*(.5+x*.8);
-   });
-   materialParts.forEach(m=>m.rotation.y=frame*.3);
+  // Audio processing at the listener never reduces source emission. Source rings respond to MIC input.
+  rings.forEach((ring,i)=>{
+    const pulse=(frame+i/6)%1;
+    ring.scale.setScalar(.5+pulse*(1.08+motion*.22));
+    ring.material.opacity=(.18+pulse*.07+motion*.38)*(1-pulse*.8);
+  });
+  materialParts.forEach(m=>{m.rotation.y=frame*.3;m.material.color.setHex(motion>.66?0xffc184:0x3adccb)});
  }
- if(t-lastHud>450){lastHud=t;if(state.started)renderHUD();if(openedPanel==='time'&&$('#score'))$('#score').textContent=score();}
+ if(t-lastHud>280){
+  lastHud=t;
+  if(state.started)renderHUD();
+  if(openedPanel==='time'&&$('#score'))$('#score').textContent=score();
+  if(state.mic){
+    const label=state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(0)+' dB*';
+    if($('#audioReadout'))$('#audioReadout').textContent=label;
+    if($('#audioMeterFill'))$('#audioMeterFill').style.width=Math.round(state.relativeLevel*100)+'%';
+    if($('#audioStatusText'))$('#audioStatusText').textContent='Micrófono activo · escucha '+(state.listen?'ACTIVA':'apagada')+' · visualización relativa';
+  }
+  if(state.listen)updateAudioProcessing();
+ }
  requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
