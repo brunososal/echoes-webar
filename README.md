@@ -65,3 +65,23 @@ La nueva versión incorpora:
 5. Descarga la bitácora de la sesión desde **Misión** si quieres conservarla para una prueba de usuario.
 
 **Estado:** la lógica de los widgets y la sintaxis del JavaScript se comprobaron en el repositorio. El nuevo flujo completo de colocación por toque y evaluación espacial aún debe verificarse en un iPhone físico. La v0.5 permanece disponible como versión de referencia.
+
+## v0.7 (beta) — Laboratorio auditivo en tiempo real
+
+En [ECHOES Laboratorio RA + Audio](https://brunososal.github.io/echoes-webar/lab.html), el sexto widget **Escuchar** permite:
+
+- Captar el micrófono (sin subir grabaciones), medir nivel digital **dBFS**, y animar las ondas 3D con esa señal real.
+- Escuchar voluntariamente una versión limitada y procesada por audífonos, tras confirmar que están conectados y con volumen del sistema bajo. La salida está apagada por defecto.
+- Comparar cuatro procesamientos: original a volumen bajo, suavizado por paso bajo, voz destacada, y sonido más apagado. Barrera virtual y EPP también atenúan la salida **procesada**, no la emisión ambiental ni la protección real.
+- Ajustar un volumen interno conservador con un límite de ganancia digital. Hay botón de silencio inmediato y parada ante saturación digital; **esto no garantiza un nivel físico de escucha seguro**, que depende de los audífonos y el volumen del sistema.
+- Opcionalmente introducir el nivel conocido de un **sonómetro externo** para obtener un número de dB aproximadamente referenciado desde un único punto. Es una aproximación sin ponderación A implementada, no un registro de dBA ni apto para cumplimiento de la NOM-011. Sin esa referencia, sólo se muestra dBFS.
+
+### Importante sobre audífonos y ANC
+
+La aplicación no puede saber de forma fiable si el audio está saliendo por los audífonos o por el altavoz. El usuario debe confirmar la conexión antes de activar la escucha; si cambia la salida o escucha pitidos, debe detenerla inmediatamente. Si utiliza AirPods u otros audífonos con **cancelación activa de ruido (ANC)**, deberá activarla o desactivarla mediante los propios audífonos o los controles del sistema: Safari **no puede conmutar ANC ni medir su efectividad**. La captura puede utilizar el micrófono del audífono en vez del iPhone, según las decisiones del sistema operativo, lo que limita comparaciones de condiciones.
+
+**No utilizar para exponer a una persona a niveles peligrosos, operar maquinaria, sustituir protectores auditivos certificados, ni amplificar ruido de taller.** Probar sólo en un entorno silencioso o moderado, a volumen bajo y sin riesgos de seguridad. La representación espacial del sonido no es una predicción física del campo acústico.
+
+Referencias de contexto sobre la calibración: [NIOSH Sound Level Meter App](https://www.cdc.gov/niosh/noise/about/app.html) y [Web Audio API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API).
+
+**Validación pendiente:** comportamiento de entrada/salida Bluetooth, latencia, permisos de micrófono y cámara simultáneos, y respuesta de filtros en Safari iPhone real.
