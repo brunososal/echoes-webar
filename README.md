@@ -142,3 +142,7 @@ La vista principal en `lab.html` alarga la escala azul→rojo de 135 a 238 px en
 Se intensificaron las capas visuales conforme se aproxima al extremo cálido: tintes, densidad y tamaño de partículas, ondas y halo rojo periférico suave. La animación sigue el nivel **nativo en dBFS**, sin volver a introducir la conversión +93.5 dB. Los efectos rojos no son un indicador validado de peligro o de daño al oído; el usuario puede activar reducción de movimiento. Se aumentó el arreglo de partículas para evitar accesos inexistentes con la densidad mayor.
 
 Pruebas realizadas en el código: sintaxis JavaScript, existencia y unicidad de ID de interfaz, manejador de pulsación de EPP y control de límite de cantidad de partículas. Pendiente de prueba en Safari/iPhone con entrada y audífonos reales.
+
+## ECHOES 1.3 beta — Barra inferior simplificada
+
+Se eliminaron los botones **Ambiente** e **Intervenir** de `lab.html` porque ya eran redundantes con la captura ambiental constante y el control flotante de oreja/EPP virtual. Se conserva la lectura nativa dBFS, la escala cromática alargada, los efectos de partículas/ondas, y el interruptor de oreja. La barra inferior ahora tiene sólo **Escuchar** (control de audífonos, volumen, salida de prueba y micrófono) y **Evaluar** (cuestionario). El botón EPP **no activa la reproducción**: únicamente prepara o cambia la atenuación en la ruta opcional de audio, dejando intacta la entrada ambiental. Pruebas de código realizadas: validación de sintaxis JS y referencias DOM; pendiente verificar la ergonomía real en Safari iPhone.
