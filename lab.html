@@ -64,7 +64,7 @@
 <div class="tag">RA ESPACIAL · FUENTE ELEGIDA POR TI · NO ACÚSTICA MEDIDA</div><div id="taskstatus">Coloca una fuente virtual y experimenta con controles preventivos.</div>
 <div id="message" role="status">Inicia la cámara y mueve lentamente el teléfono para establecer el seguimiento.</div>
 <div class="target" id="target"></div>
-<div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>VISUALIZACIÓN · NO dBA</small><strong id="status">SIMULADA</strong></div></div>
+<div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>HUELLA SIMULADA · NO dBA</small><strong id="status">SIMULADA</strong><small id="sourceStatus">Referencia no elegida</small></div></div>
 <div class="toolbar"><button data-widget="scene"><span class="glyph">▦</span>Entorno</button><button data-widget="control"><span class="glyph">♢</span>Control</button><button data-widget="time"><span class="glyph">◷</span>Tiempo</button><button data-widget="effects"><span class="glyph">◉</span>Efectos</button><button data-widget="mission"><span class="glyph">✓</span>Misión</button></div></div>
 <div id="shade"></div>
 <div id="sheet"><button id="close" aria-label="Cerrar">×</button><h2 id="sheetTitle"></h2><div id="sheetBody"></div></div>
@@ -79,8 +79,78 @@ let source=null, xrScene=null, xrCamera=null, wall=null, floorGuard=null, stream
 const base={cnc:.9,office:.46,street:.7};
 const names={cnc:'CNC',office:'Oficina',street:'Calle'};
 const notify=(msg)=>{$('#message').textContent=msg};
-const score=()=>{let e=base[state.scene]*(state.barrier?.75:1)*(state.distance?.65:1)*(state.protect&&state.scene==='cnc'?.57:1);return Math.min(100,Math.round(e*Math.sqrt(state.hours/8)*100))};
-function renderHUD(){$('#scenario').textContent=names[state.scene];$('#status').textContent=state.mic?'MIC. ACTIVO':'SIMULADA';if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}}
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const distanceFactor=()=>{
+ if(!state.placed||!source||!xrCamera||!baseDistance)return state.distance?.65:1;
+ const d=xrCamera.position.distanceTo(source.position);
+ return clamp(baseDistance/Math.max(.35,d),.6,1.2);
+};
+let openedPanel=null;
+function missionFlags(){return [state.placed,state.barrier,state.protect&&state.scene==='cnc',state.movedTime,state.answered==='receptor'];}
+function missionCount(){return missionFlags().filter(Boolean).length;}
+function placeMode(on){
+ state.placing=on;
+ $('#placeSource').classList.toggle('active',on);
+ $('#placeSource').textContent=on?'✓ Toca el entorno':'⊕ Ubicar fuente';
+ $('#target').style.display=on?'block':'none';
+ $('#taskstatus').textContent=on?'Toca la imagen de cámara donde quieres colocar la fuente virtual.':'Fuente elegida manualmente · controles de exposición ilustrativos';
+ if(on)notify('Apunta a una superficie con detalles y toca la imagen donde ubicarás la fuente.');
+}
+function placeSource(event){
+ if(!state.started||!state.placing||!source||!xrCamera)return;
+ const canvas=$('#camerafeed'),b=canvas.getBoundingClientRect();
+ const x=(event.clientX-b.left)/b.width*2-1, y=-(event.clientY-b.top)/b.height*2+1;
+ xrCamera.updateMatrixWorld(true);
+ const ray=new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(x,y),xrCamera);
+ const ground=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+ const hit=new THREE.Vector3();
+ let good=ray.ray.intersectPlane(ground,hit);
+ const length=good?hit.distanceTo(xrCamera.position):0;
+ if(!good||length<.45||length>7){
+  const direction=new THREE.Vector3();xrCamera.getWorldDirection(direction);
+  direction.y=0; if(direction.length()<.05)direction.set(0,0,-1);
+  direction.normalize();
+  hit.copy(xrCamera.position).addScaledVector(direction,1.65);hit.y=0;
+ }
+ source.position.set(hit.x,0,hit.z);
+ baseDistance=Math.max(.35,xrCamera.position.distanceTo(source.position));
+ state.placed=true;placeMode(false);syncBarrier();renderHUD();
+ notify('Fuente virtual colocada. La posición no se detectó por sonido ni se midió acústicamente.');
+ if(openedPanel==='mission')openPanel('mission');
+}
+$('#placeSource').addEventListener('click',()=>{if(!state.started){notify('Inicia la RA primero.');return}placeMode(!state.placing)});
+$('#camerafeed').addEventListener('pointerdown',e=>{if(state.placing)placeSource(e)});
+function makeBarrier(){
+ const group=new THREE.Group();
+ const board=new THREE.Mesh(new THREE.PlaneGeometry(.86,.87),new THREE.MeshBasicMaterial({color:0x64f9d1,transparent:true,opacity:.29,side:THREE.DoubleSide,depthWrite:false}));
+ board.position.y=.48;group.add(board);
+ const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(.86,.87)),new THREE.LineBasicMaterial({color:0xd9fff2,transparent:true,opacity:.85}));
+ outline.position.y=.48;group.add(outline);
+ const foot=new THREE.Mesh(new THREE.BoxGeometry(1,.035,.08),new THREE.MeshBasicMaterial({color:0x75bcb4,transparent:true,opacity:.82}));foot.position.y=.035;group.add(foot);
+ const line=new THREE.Mesh(new THREE.PlaneGeometry(.9,.12),new THREE.MeshBasicMaterial({color:0x5ee0bc,opacity:.18,transparent:true,side:THREE.DoubleSide}));
+ line.rotation.x=-Math.PI/2;line.position.set(0,.02,.11);group.add(line);
+ group.visible=false;return group;
+}
+function syncBarrier(){
+ if(!wall||!source||!xrCamera)return;
+ wall.visible=state.barrier;
+ if(!state.barrier)return;
+ let cam=new THREE.Vector3();xrCamera.getWorldPosition(cam);
+ const toCam=cam.clone().sub(source.position);toCam.y=0;
+ if(toCam.length()<.1)toCam.set(0,0,1);
+ toCam.normalize();
+ wall.position.set(source.position.x+toCam.x*.88,0,source.position.z+toCam.z*.88);
+ wall.rotation.y=Math.atan2(toCam.x,toCam.z);
+}
+
+const score=()=>{let e=base[state.scene]*(state.barrier?.75:1)*distanceFactor()*(state.protect&&state.scene==='cnc'?.57:1);return Math.min(100,Math.round(e*Math.sqrt(state.hours/8)*100))};
+function renderHUD(){
+ $('#scenario').textContent=names[state.scene];
+ $('#status').textContent=score()+'/100';
+ $('#sourceStatus').textContent=state.placed?'Fuente elegida · '+(distanceFactor()>.96?'cerca':distanceFactor()>.74?'intermedia':'más alejada'):'Anclaje inicial';
+ if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}
+ $('#taskstatus').textContent=state.placing?'Toca la vista de cámara para colocar la fuente virtual':'Misión de aprendizaje: '+missionCount()+'/5 etapas';
+}
 function createSoundField(){
 const group=new THREE.Group();
 const glass=new THREE.MeshPhysicalMaterial({color:0x3adccb,metalness:.12,roughness:.28,transmission:.08,transparent:true,opacity:.67,side:THREE.DoubleSide});
@@ -94,7 +164,7 @@ const accent=new THREE.Mesh(new THREE.RingGeometry(.31,.34,56),new THREE.MeshBas
 return group;
 }
 function scenePipeline(){return {name:'echoes-spatial-scene',
-onStart:({canvas})=>{const {scene,camera,renderer}=XR8.Threejs.xrScene();xrScene=scene;scene.add(new THREE.HemisphereLight(0xbbefff,0x234651,2));source=createSoundField();source.position.set(0,0,0);scene.add(source);camera.position.set(0,2,2);XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion});renderHUD();notify('Seguimiento espacial iniciado. Mira el objeto virtual y mueve lentamente el teléfono.');$('#target').style.display='none';},
+onStart:({canvas})=>{const {scene,camera,renderer}=XR8.Threejs.xrScene();xrScene=scene;scene.add(new THREE.HemisphereLight(0xbbefff,0x234651,2));source=createSoundField();source.position.set(0,0,0);scene.add(source);xrCamera=camera;camera.position.set(0,2,2);wall=makeBarrier();scene.add(wall);XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion});baseDistance=camera.position.distanceTo(source.position);renderHUD();notify('Seguimiento espacial iniciado. Pulsa «Ubicar fuente» para anclarla al lugar que elijas.');$('#target').style.display='none';},
 onUpdate:({processCpuResult})=>{const status=processCpuResult?.reality?.trackingStatus;if(status==='NORMAL')notify('Objeto anclado en el espacio. Puedes rodearlo con cuidado.');else if(status==='LIMITED')notify('Seguimiento limitado: apunta a superficies con textura y buena luz.')}
 }}
 function begin(){if(state.started)return; if(!window.XR8||!window.THREE){$('#bootStatus').textContent='El motor XR todavía no está cargado. Comprueba la conexión y vuelve a intentar.';return}
@@ -102,7 +172,7 @@ try{const mods=[XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModul
 $('#start').addEventListener('click',begin);
 window.addEventListener('xrloaded',()=>{$('#bootStatus').textContent='Motor espacial listo para iniciar.'});
 window.addEventListener('error',e=>{if(!state.started)$('#bootStatus').textContent='Error de carga: '+(e.message||'revisa conexión')});
-$('#recenter').addEventListener('click',()=>{if(!state.started)return;try{XR8.XrController.recenter();notify('Campo acústico reubicado frente a la cámara.')}catch(e){notify('No se pudo reubicar: '+e.message)}});
+$('#recenter').addEventListener('click',()=>{if(!state.started)return;try{XR8.XrController.recenter();state.placed=false;state.placing=false;state.barrier=false;state.answered=null;state.movedTime=false;if(source)source.position.set(0,0,0);if(wall)wall.visible=false;placeMode(false);renderHUD();notify('Seguimiento reiniciado. Puedes volver a ubicar la fuente.')}catch(e){notify('No se pudo reiniciar: '+e.message)}});
 function closePanel(){$('#sheet').classList.remove('open');$('#shade').classList.remove('open')}
 $('#close').addEventListener('click',closePanel);$('#shade').addEventListener('click',closePanel);
 function choice(label,key,val,selected){return '<button class="choice '+(selected?'on':'')+'" data-key="'+key+'" data-val="'+val+'">'+label+'</button>'}
