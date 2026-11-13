@@ -41,3 +41,27 @@ Las ilustraciones y el modo cámara requieren pruebas en iPhone real para caract
 ## Motor AR espacial
 
 El modo espacial emplea el motor 8th Wall Engine Binary y three.js de acuerdo con la [licencia del motor](https://github.com/8thwall/engine/blob/main/LICENSE). El código de aplicación y los efectos 3D son propios de este prototipo; el motor SLAM es un binario externo bajo licencia de uso limitado. La RA depende de recursos CDN y permisos del navegador. Safari iOS no expone todavía WebXR inmersivo de forma general; la experiencia utiliza el motor de seguimiento del video directamente.
+
+
+## v0.6 (beta) — Laboratorio espacial
+
+- **Abrir laboratorio:** https://brunososal.github.io/echoes-webar/lab.html
+- **Prototipo RA anterior v0.5:** https://brunososal.github.io/echoes-webar/ar.html
+
+La nueva versión incorpora:
+1. Selección manual de una fuente sonora virtual tocando la imagen en modo de ubicación. El sistema proyecta un rayo sobre un plano virtual de referencia Y=0 o usa una posición frontal de respaldo; **no detecta superficies físicas ni fuentes de ruido de manera automática**.
+2. Barrera acústica virtual anclada en el mundo, colocada entre fuente y teléfono al activarla. La representación no modela reflexiones o atenuación real.
+3. Indicador de huella educativa que combina un valor de contexto hipotético, duración, EPP y separación espacial relativa (sin calibración métrica/acústica).
+4. Separación pedagógica entre emisión de la fuente y protección del receptor: el EPP no apaga las ondas que salen de la fuente.
+5. Fichas de efectos posibles y misión de cinco tareas para evaluar comprensión conceptual.
+6. Descarga opcional de bitácora anónima JSON con acciones y tiempos relativos. No guarda audio, imágenes ni coordenadas de la cámara.
+
+### Prueba recomendada en iPhone
+
+1. Abre el enlace del laboratorio en Safari y toca **Iniciar RA espacial**.
+2. Cuando se vea el campo 3D, pulsa **Ubicar fuente** y toca el punto donde quieres el marcador virtual.
+3. Abre **Control** para añadir la barrera y, en CNC, activar protección auditiva.
+4. Muévete con cuidado para explorar la relación espacial; cambia el tiempo, consulta los efectos y resuelve la misión.
+5. Descarga la bitácora de la sesión desde **Misión** si quieres conservarla para una prueba de usuario.
+
+**Estado:** la lógica de los widgets y la sintaxis del JavaScript se comprobaron en el repositorio. El nuevo flujo completo de colocación por toque y evaluación espacial aún debe verificarse en un iPhone físico. La v0.5 permanece disponible como versión de referencia.
