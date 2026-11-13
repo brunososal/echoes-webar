@@ -105,3 +105,24 @@ La experiencia `lab.html` se rediseñó como un entorno de RA con **acciones de 
 **Audífonos y detección:** `enumerateDevices()` permite inspeccionar lo que Safari decida exponer, pero **no asegura conocer la salida activa**. Puede mostrar «posible audífono», «audífono como entrada; salida no confirmada» o «salida no verificable». No se activa automáticamente la escucha a partir de esas pistas. Si se detecta un cambio de dispositivos durante la reproducción se silencia la ruta monitorizada por precaución. Una etiqueta reconocible de micrófono de audífonos invalida la referencia provisional aplicada para el micrófono del iPhone.
 
 **Limitaciones y prueba:** se verificó sintaxis JS y que las acciones tengan sus manejadores en el código; falta validar permisos simultáneos de cámara/micrófono y el comportamiento de tarjetas y dispositivos en Safari del iPhone. Esta interfaz no detecta fuentes acústicas ni controla ANC.
+
+## ECHOES 1.0 beta — Lente acústico (versión principal)
+
+**Entrada:** https://brunososal.github.io/echoes-webar/  
+**Experiencia:** https://brunososal.github.io/echoes-webar/lab.html
+
+La experiencia actual deja atrás los widgets de escena CNC/oficina/calle, tiempo, barrera espacial y fuente virtual. Prioriza la **traducción visual del sonido captado** en una cámara real: realidad aumentada tipo superposición de video, **sin SLAM ni localización acústica**.
+
+- Escala cromática discreta azul → verde → amarillo → rojo para **intensidad relativa de entrada digital**. No equivale a seguridad o daño, y no mide niveles normativos en dBA.
+- Acciones principales **Ambiente**, **Intervenir** y **Escuchar**; evaluación pre/post optativa en **Evaluar**.
+- Ruta de audio rediseñada: captura combinada de cámara/micrófono (fallback de micrófono si el permiso combinado falla), analizador RMS digital, ganancia de entrada, filtros pasa-altas/pasa-bajas, compresor, saturación suave y control de ganancia de salida. **Salida apagada por defecto**; se activa sólo por interacción directa y confirmación manual de audífonos conectados y volumen bajo.
+- **Prueba de salida** con tono sinusoidal breve, accionada expresamente, para separar problemas de reproducción Bluetooth de captura. Volumen interno ajustable y botón visible «Silenciar» durante la reproducción.
+- La señal ambiental original y su escala cromática **permanecen iguales** al activar una intervención. Sólo cambian el audio reproducido y una capa visual que representa lo que escucha el receptor; no se infiere una reducción acústica real.
+- Cuatro preguntas de comprensión antes/después (optativas). Se puede exportar JSON local de opciones y respuestas sin audio, video ni coordenadas. No demuestra eficacia causal sin estudio comparativo.
+- La referencia exploratoria +93.5 dB desde −44.5 dBFS ↔ 49 dB del sonómetro externo se conserva únicamente para diagnóstico; **no es validación dBA** y no determina la escala cromática. Se descarta la referencia si se reconoce un micrófono Bluetooth.
+
+**Versiones históricas:** [RA espacial v0.9](./spatial-v0.9.html) y [simulación anterior](./legacy-home-v0.9.html).
+
+**Pruebas pendientes:** permisos simultáneos de cámara y micrófono en Safari, ruta real Bluetooth, latencia y nivel de escucha. Safari no permite conocer siempre la salida de audio activa ni controlar ANC. Si no se oye el tono, revisar AirPlay/Bluetooth y volumen de iPhone; si el tono funciona pero el micrófono no, revisar permisos y dispositivo de captura. Detener al oír retroalimentación, pitidos o malestar.
+
+**Estado:** actualizado en GitHub y comprobado sintácticamente; el nuevo audio no ha sido verificado en un iPhone con audífonos físicos.
