@@ -126,3 +126,11 @@ La experiencia actual deja atrás los widgets de escena CNC/oficina/calle, tiemp
 **Pruebas pendientes:** permisos simultáneos de cámara y micrófono en Safari, ruta real Bluetooth, latencia y nivel de escucha. Safari no permite conocer siempre la salida de audio activa ni controlar ANC. Si no se oye el tono, revisar AirPlay/Bluetooth y volumen de iPhone; si el tono funciona pero el micrófono no, revisar permisos y dispositivo de captura. Detener al oír retroalimentación, pitidos o malestar.
 
 **Estado:** actualizado en GitHub y comprobado sintácticamente; el nuevo audio no ha sido verificado en un iPhone con audífonos físicos.
+
+## ECHOES 1.1 beta — Mayor sensibilidad visual, sólo dBFS (13 nov 2026)
+
+- El lente principal (`lab.html`) **elimina la referencia de +93.5 dB** y usa únicamente **dBFS RMS nativos del flujo digital**. En el icono ⚙ se muestra el dBFS y el pico digital para diagnóstico; no se representa una medida de presión acústica calibrada ni un valor dBA.
+- Transferencia visual estática y sensible de `−58 dBFS` (extremo frío) a `−22 dBFS` (extremo cálido). El color **no marca un umbral de salud**. Por ejemplo, el mismo teléfono a `−45 dBFS` se representaría alrededor de 0.36, mientras `−35 dBFS` rondaría 0.64 antes del refuerzo por transitorios. Estas cifras ilustran el mapeo del software, no niveles ambientales.
+- Se añadió cálculo de pico para resaltar eventos breves de la señal; seguimiento visual con ataque aproximado de 55 ms y liberación de 380 ms, filtro de color más visible, ondas más intensas y densidad de partículas variable.
+- No se modifica la ganancia ni se promete mejorar la sensibilidad física del micrófono: sólo su **traducción visual**. Si iOS aplica ganancia automática o limita la captura, la señal nativa podría variar menos con la distancia; se debe verificar en iPhone frente a una fuente estable a diferentes distancias.
+- Se mantienen la separación entre ambiente captado y filtro perceptivo, la reproducción opcional con audífonos y la evaluación educativa.
