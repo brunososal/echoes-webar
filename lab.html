@@ -134,9 +134,10 @@ $("#panelBody").innerHTML=
 '<div class="line"><label><input id="headphonesCheck" type="checkbox" '+(state.headphones?'checked':'')+'>Tengo audífonos conectados y el volumen del sistema bajo</label></div>'+
 '<div class="options"><button id="listenBtn" class="'+(state.listen?'selected':'')+'">'+(state.listen?'■ Detener escucha':'▶ Escuchar el micrófono')+'</button><button id="testBtn">♪ Probar salida (tono breve)</button></div>'+
 '<div class="line"><label>Volumen interno <b id="volumeText">'+state.volume+'%</b></label><input id="volumeRange" type="range" min="0" max="100" step="2" value="'+state.volume+'"></div>'+
-'<p>Entrada: <b id="micLabel"></b></p><p>Salida: <b id="outputRoute">Safari no la confirma</b>. Si se oye el tono pero no el entorno, revisaremos la captura. Si no se oye el tono, revisa ruta Bluetooth y volumen del iPhone.</p>'+
+'<p>Entrada: <b id="micLabel"></b> · <b id="liveSignal">Sin lectura</b></p><p>Salida: <b id="outputRoute">Safari no la confirma</b>. Si se oye el tono pero no el entorno, revisaremos la captura. Si no se oye el tono, revisa ruta Bluetooth y volumen del iPhone.</p>'+
 '<div id="warning">No activa ni controla ANC. No garantiza aislamiento ni un nivel seguro en el oído. Si aparecen ecos, silbidos o un sonido molesto, pulsa «Silenciar» inmediatamente. Evita usarlo junto a maquinaria.</div>';
 $("#micLabel").textContent=state.inputLabel;
+if($("#liveSignal"))$("#liveSignal").textContent=state.mic?num(state.level)+" dBFS":"sin micrófono";
 $("#headphonesCheck").onchange=e=>{state.headphones=e.target.checked;if(!state.headphones)stopListen()};
 $("#listenBtn").onclick=()=>state.listen?stopListen():startListen();
 $("#testBtn").onclick=testOutput;
@@ -179,6 +180,7 @@ function makeSoftclip(context){const node=context.createWaveShaper(),curve=new F
 async function start(){
 if(state.started)return;
 state.started=true;$("#intro").style.display="none";
+try{if(navigator.audioSession)navigator.audioSession.type="auto"}catch(_){ }
 try{
 audioCtx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});void audioCtx.resume().catch(()=>{});
 }catch(e){toast("Audio Web no disponible: "+e.message)}
@@ -191,6 +193,7 @@ toast("No se pudieron iniciar juntos cámara y micrófono: "+e.message);
 try{media=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}catch(e2){toast("Micrófono no disponible: "+e2.message)}
 }
 if(media?.getAudioTracks().length&&audioCtx){
+try{if(navigator.audioSession)navigator.audioSession.type="play-and-record"}catch(_){ }
 try{
 source=audioCtx.createMediaStreamSource(media);analyser=audioCtx.createAnalyser();analyser.fftSize=2048;
 timeBuf=new Uint8Array(analyser.fftSize);source.connect(analyser);
@@ -253,7 +256,7 @@ const amount=intervention?.10+(.18*state.smoothed):0;
 $("#receiverTint").style.background="rgba(66,193,193,"+amount+")";
 $("#receiverTint").style.clipPath=state.compare?"inset(0 0 0 50%)":"none";
 $("#pin").style.bottom=(3+state.smoothed*94)+"%";
-if(t-lastUI>340){lastUI=t;$("#micStatus").textContent=state.mic?"Captando · "+(state.referenceValid?"nivel relativo":"sin calibración"):"Micrófono sin señal"}
+if(t-lastUI>340){lastUI=t;$("#micStatus").textContent=state.mic?"Captando · "+(state.referenceValid?"nivel relativo":"sin calibración"):"Micrófono sin señal";if($("#liveSignal"))$("#liveSignal").textContent=state.mic?num(state.level)+" dBFS":"sin señal"}
 ctx.clearRect(0,0,W,H);
 const count=state.reduced?18:78;
 for(let i=0;i<count;i++){const p=dots[i],move=state.reduced?.15:1,px=(p.x*W+Math.sin(phase*move+p.phase)*14),py=(p.y*H+Math.cos(phase*move+p.phase)*18);
@@ -265,7 +268,8 @@ requestAnimationFrame(tick)
 }
 requestAnimationFrame(tick);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopListen()});
-window.addEventListener("pagehide",()=>{stopListen();media?.getTracks().forEach(t=>t.stop());videoStream?.getTracks().forEach(t=>t.stop())});
+if(navigator.mediaDevices?.addEventListener)navigator.mediaDevices.addEventListener("devicechange",()=>{if(state.listen){stopListen();toast("Cambió un dispositivo de audio; reproducción silenciada. Confirma la ruta Bluetooth antes de continuar.")}});
+window.addEventListener("pagehide",()=>{stopListen();media?.getTracks().forEach(t=>t.stop());videoStream?.getTracks().forEach(t=>t.stop());try{if(navigator.audioSession){navigator.audioSession.type="playback";navigator.audioSession.type="auto"}}catch(_){}});
 updateInfo();
 })();
 </script></body></html>
