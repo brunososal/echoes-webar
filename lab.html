@@ -161,7 +161,7 @@ function missionCount(){return missionFlags().filter(Boolean).length;}
 function placeMode(on){
  state.placing=on;
  $('#placeSource').classList.toggle('active',on);
- $('#placeSource').textContent=on?'✓ Toca el entorno':'⊕ Ubicar fuente';
+ $('#placeSource').textContent=on?'✓ Toca escena':'⊕ Fuente';
  $('#target').style.display=on?'block':'none';
  $('#taskstatus').textContent=on?'Toca la imagen de cámara donde quieres colocar la fuente virtual.':'Fuente elegida manualmente · controles de exposición ilustrativos';
  if(on)notify('Apunta a una superficie con detalles y toca la imagen donde ubicarás la fuente.');
@@ -189,6 +189,16 @@ function placeSource(event){
  if(openedPanel==='mission')openPanel('mission');
 }
 $('#placeSource').addEventListener('click',()=>{if(!state.started){notify('Inicia la RA primero.');return}placeMode(!state.placing)});
+$('#quickBarrier').addEventListener('click',()=>{
+ state.barrier=!state.barrier;logEvent('barrera',state.barrier?'on':'off');
+ syncBarrier();updateAudioProcessing();renderHUD();
+});
+$('#quickPpe').addEventListener('click',()=>{
+ if(state.scene!=='cnc')return;
+ state.protect=!state.protect;logEvent('epp',state.protect?'on':'off');
+ updateAudioProcessing();renderHUD();
+});
+$('#quickMic').addEventListener('click',()=>toggleMic());
 $('#camerafeed').addEventListener('pointerdown',e=>{if(state.placing)placeSource(e)});
 function makeBarrier(){
  const group=new THREE.Group();
@@ -219,7 +229,12 @@ function renderHUD(){
  $('#status').textContent=score()+'/100'+(state.listen?' · AUDIO':state.mic?' · MIC':'');$('#quickMute').hidden=!state.listen;$('#micMeterStatus').textContent=state.mic?(state.calOffset===null?state.digitalDb.toFixed(0)+' dBFS':(state.digitalDb+state.calOffset).toFixed(0)+' dB ref. aprox.'):'MICRÓFONO APAGADO';
  $('#sourceStatus').textContent=state.placed?'Fuente elegida · '+(distanceFactor()>.96?'cerca':distanceFactor()>.74?'intermedia':'más alejada'):'Anclaje inicial';
  if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}
- $('#taskstatus').textContent=state.placing?'Toca la vista de cámara para colocar la fuente virtual':'Misión de aprendizaje: '+missionCount()+'/5 etapas';
+ $('#taskstatus').textContent=state.placing?'Toca donde colocar la fuente':'Campo virtual · '+missionCount()+'/5';
+ $('#quickBarrier').classList.toggle('active',state.barrier);
+ $('#quickPpe').classList.toggle('active',state.protect&&state.scene==='cnc');
+ $('#quickPpe').hidden=state.scene!=='cnc';
+ $('#quickMic').classList.toggle('active',state.mic);
+ $('#quickMic').textContent=state.mic?'● Mic ON':state.micStarting?'◌ Permiso...':'○ Mic OFF';
 }
 function createSoundField(){
 const group=new THREE.Group();
@@ -240,7 +255,7 @@ onUpdate:({processCpuResult})=>{const status=processCpuResult?.reality?.tracking
 }
 }}
 function begin(){if(state.started)return; if(!window.XR8||!window.THREE){$('#bootStatus').textContent='El motor XR todavía no está cargado. Comprueba la conexión y vuelve a intentar.';return}
-try{const mods=[XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule()];if(window.XRExtras?.FullWindowCanvas)mods.push(XRExtras.FullWindowCanvas.pipelineModule());mods.push(scenePipeline());XR8.addCameraPipelineModules(mods);XR8.run({canvas:$('#camerafeed'),allowedDevices:XR8.XrConfig.device().MOBILE});state.started=true;$('#launch').style.display='none';notify('Cámara solicitada. Esperando seguimiento...');}catch(e){$('#bootStatus').textContent='No se pudo iniciar: '+e.message;console.error(e)}}
+try{const mods=[XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule()];if(window.XRExtras?.FullWindowCanvas)mods.push(XRExtras.FullWindowCanvas.pipelineModule());mods.push(scenePipeline());XR8.addCameraPipelineModules(mods);XR8.run({canvas:$('#camerafeed'),allowedDevices:XR8.XrConfig.device().MOBILE});state.started=true;$('#launch').style.display='none';notify('Cámara solicitada. Activando micrófono...');void startMic(true);}catch(e){$('#bootStatus').textContent='No se pudo iniciar: '+e.message;console.error(e)}}
 $('#start').addEventListener('click',begin);
 window.addEventListener('xrloaded',()=>{$('#bootStatus').textContent='Motor espacial listo para iniciar.'});
 window.addEventListener('error',e=>{if(!state.started)$('#bootStatus').textContent='Error de carga: '+(e.message||'revisa conexión')});
