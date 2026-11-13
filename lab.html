@@ -91,7 +91,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js';
 window.THREE=THREE;
 const $=(s)=>document.querySelector(s);
-const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false,listen:false,headphones:false,preset:'natural',monitorVolume:15,refDb:null,calOffset:null,digitalDb:-100,relativeLevel:0};
+const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false,listen:false,headphones:false,preset:'natural',monitorVolume:15,refDb:49,calOffset:93.5,calOrigin:'provisional',digitalDb:-100,relativeLevel:0,inputLabel:'sin identificar'};
 let source=null, xrScene=null, xrCamera=null, wall=null, floorGuard=null, stream=null,ac=null,analyser=null,samples=null,materialParts=[],rings=[],lastTime=0,frame=0,baseDistance=null,lastHud=0,tracking='INITIALIZING',micSource=null,filterHigh=null,filterLow=null,monitorGain=null,limiter=null,audioPeak=0,lastAudioMeter=0;
 const base={cnc:.9,office:.46,street:.7};
 const names={cnc:'CNC',office:'Oficina',street:'Calle'};
@@ -110,7 +110,7 @@ function logEvent(type,detail){
  events.push({elapsedMs:Math.round(performance.now()-sessionStart),type,detail:String(detail??'')});
 }
 function exportSession(){
- const summary={prototype:'ECHOES',version:'0.7-audio-beta',purpose:'prueba educativa de interacción',anonymous:true,
+ const summary={prototype:'ECHOES',version:'0.8-reference-calibration-beta',purpose:'prueba educativa de interacción',anonymous:true,
  scenario:state.scene,stepsCompleted:missionCount(),quizAnswer:state.answered||'sin responder',
  currentDidacticIndex:score(),events:[...events],
  note:'No son datos de exposición acústica ni resultados clínicos. Sin imágenes, audio o coordenadas.'};
@@ -181,7 +181,7 @@ function syncBarrier(){
 const score=()=>{let e=base[state.scene]*(state.barrier?.75:1)*distanceFactor()*(state.protect&&state.scene==='cnc'?.57:1);return Math.min(100,Math.round(e*Math.sqrt(state.hours/8)*100))};
 function renderHUD(){
  $('#scenario').textContent=names[state.scene];
- $('#status').textContent=score()+'/100'+(state.listen?' · AUDIO':state.mic?' · MIC':'');$('#quickMute').hidden=!state.listen;$('#micMeterStatus').textContent=state.mic?(state.calOffset===null?state.digitalDb.toFixed(0)+' dBFS (digital)':(state.digitalDb+state.calOffset).toFixed(0)+' dB aprox. *'):'MICRÓFONO APAGADO';
+ $('#status').textContent=score()+'/100'+(state.listen?' · AUDIO':state.mic?' · MIC':'');$('#quickMute').hidden=!state.listen;$('#micMeterStatus').textContent=state.mic?(state.calOffset===null?state.digitalDb.toFixed(0)+' dBFS':(state.digitalDb+state.calOffset).toFixed(0)+' dB ref. aprox.'):'MICRÓFONO APAGADO';
  $('#sourceStatus').textContent=state.placed?'Fuente elegida · '+(distanceFactor()>.96?'cerca':distanceFactor()>.74?'intermedia':'más alejada'):'Anclaje inicial';
  if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}
  $('#taskstatus').textContent=state.placing?'Toca la vista de cámara para colocar la fuente virtual':'Misión de aprendizaje: '+missionCount()+'/5 etapas';
@@ -252,7 +252,7 @@ function openPanel(kind){
  }
  if(kind==='audio'){
  body='<p>Escucha la señal captada por el micrófono con procesamiento didáctico. La escucha está <b>apagada de forma predeterminada</b>.</p>'+
- '<div class="audioBar"><span class="audioSmall">Nivel de entrada</span><strong id="audioReadout">'+(state.mic?(state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(0)+' dB*'):'—')+'</strong></div>'+
+ '<div class="audioBar"><span class="audioSmall">Nivel referenciado (aprox.)</span><strong id="audioReadout">'+(state.mic?(state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(1)+' dB ref.'):'—')+'</strong></div>'+ '<p class="audioSmall">Valor digital sin calibrar: <strong id="rawReadout">'+(state.mic?state.digitalDb.toFixed(1)+' dBFS':'—')+'</strong></p>'+
  '<div class="audioMeter"><div id="audioMeterFill" style="width:'+Math.round(state.relativeLevel*100)+'%"></div></div>'+
  '<p id="audioStatusText" class="audioSmall">'+(state.mic?'Micrófono captando · escucha '+(state.listen?'activada':'desactivada'):'Micrófono desactivado · sin grabar audio')+'</p>'+
  '<div class="audioActions"><button class="choice '+(state.mic?'on':'')+'" id="micBtn">'+(state.mic?'■ Apagar micrófono':'◉ Activar micrófono')+'</button><button class="choice '+(state.listen?'on':'')+'" id="monitorBtn">'+(state.listen?'■ Detener escucha':'♫ Escuchar en audífonos')+'</button></div>'+
@@ -268,9 +268,9 @@ function openPanel(kind){
  '<label>Volumen de escucha <strong id="volValue">'+state.monitorVolume+'%</strong> del límite interno</label>'+
  '<input id="volInput" type="range" min="0" max="100" step="5" value="'+state.monitorVolume+'">'+
  '<p class="audioSmall">La salida está limitada y comienza muy baja. Ajusta también el volumen del sistema; el indicador no representa el nivel real en el oído.</p>'+
- '<label>Calibración opcional con referencia externa</label>'+
- '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap"><input type="number" id="refInput" min="40" max="110" step="1" placeholder="p. ej. 70" value="'+(state.refDb===null?'':state.refDb)+'" aria-label="Nivel de referencia en dB"><button class="choice" id="calibrateBtn">Calibrar</button><button class="choice" id="resetCalBtn">Quitar</button></div>'+
- '<p class="audioSmall">Sin calibrar: se muestran dBFS digitales, NO dBA. Para una referencia en dB aproximados, compara simultáneamente el mismo sonido con un sonómetro calibrado. Un solo punto no crea una medición normativa ni aplica ponderación A.</p>'+
+ '<label>Referencia acústica de un punto</label>'+ '<div class="audioHelp"><b>Referencia inicial aplicada:</b> −44.5 dBFS del iPhone ≈ 49 dB del sonómetro; ajuste +93.5 dB. <b>Estimación didáctica, no dBA certificado.</b> Lectura válida sólo aproximadamente cerca del ambiente usado. Para recalibrar, mantén ambos equipos en el mismo lugar durante 15–30 segundos y utiliza un ruido relativamente estable. Entrada detectada: <b id="inputDevice">'+state.inputLabel+'</b>.</div>'+
+ '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap"><input type="number" id="refInput" min="40" max="110" step=".5" placeholder="p. ej. 49" value="'+(state.refDb===null?'':state.refDb)+'" aria-label="Nivel de referencia en dB"><button class="choice" id="calibrateBtn">Recalibrar</button><button class="choice" id="resetCalBtn">Mostrar dBFS</button></div>'+
+ '<p class="audioSmall">Con esta referencia se muestran dB acústicos orientativos, <b>no dBA medidos</b>. Sin ella, dBFS. Si cambias de micrófono, conectas AirPods o varía la ganancia automática, se debe volver a calibrar. Este algoritmo no aplica ponderación A ni cumple una norma de sonometría.</p>'+
  '<div class="audioHelp">Con AirPods puedes activar ANC desde los propios audífonos y comparar sensaciones. <b>ECHOES no controla ANC</b> y los filtros web no equivalen a una atenuación real de EPP. Si hay retraso o pitidos, detén la escucha.</div>';
  }
  if(kind==='mission'){
@@ -312,9 +312,9 @@ function openPanel(kind){
  const cal=$('#calibrateBtn');if(cal)cal.onclick=()=>{
   const n=Number($('#refInput')?.value);
   if(!state.mic||state.digitalDb < -78||!Number.isFinite(n)||n<40||n>110){notify('Activa el micrófono e introduce una referencia externa de 40 a 110 dB.');return}
-  state.refDb=n;state.calOffset=n-state.digitalDb;logEvent('calibracion_referencia','un punto externo, no normativa');notify('Referencia aplicada a esta sesión; lectura orientativa no certificada.');openPanel('audio');
+  state.refDb=n;state.calOffset=n-state.digitalDb;state.calOrigin='manual';logEvent('calibracion_referencia','un punto externo, no normativa');notify('Referencia ajustada en este ambiente; lectura sólo orientativa.');openPanel('audio');
  };
- const resetCal=$('#resetCalBtn');if(resetCal)resetCal.onclick=()=>{state.calOffset=null;state.refDb=null;openPanel('audio')};
+ const resetCal=$('#resetCalBtn');if(resetCal)resetCal.onclick=()=>{state.calOffset=null;state.refDb=null;state.calOrigin='sin referencia';openPanel('audio')};
 
  document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{state.answered=b.dataset.answer;logEvent('pregunta_epp',state.answered);renderHUD();openPanel('mission')});
  const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};const exp=$('#exportSession');if(exp)exp.onclick=exportSession;
@@ -370,7 +370,7 @@ async function toggleMic(){
   logEvent('microfono','apagado');
   try{await ac?.close()}catch(e){}
   ac=null;micSource=null;analyser=null;samples=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
-  state.mic=false;state.calOffset=null;state.refDb=null;state.digitalDb=-100;state.relativeLevel=0;
+  state.mic=false;state.digitalDb=-100;state.relativeLevel=0;
   renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');notify('Micrófono apagado. Sin reproducción.');
   return;
  }
@@ -389,7 +389,7 @@ async function toggleMic(){
   limiter.threshold.value=-35;limiter.knee.value=0;limiter.ratio.value=18;limiter.attack.value=.003;limiter.release.value=.20;
   monitorGain=ac.createGain();monitorGain.gain.value=0;
   micSource.connect(filterHigh);filterHigh.connect(filterLow);filterLow.connect(limiter);limiter.connect(monitorGain);monitorGain.connect(ac.destination);
-  state.mic=true;state.listen=false;state.calOffset=null;state.refDb=null;
+  state.mic=true;state.listen=false;state.inputLabel=(stream.getAudioTracks()[0]?.label||'No identificado').slice(0,80);
   updateAudioProcessing();logEvent('microfono','encendido_sin_salida');
   renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');
   notify('Micrófono activo: ondas y nivel digital. La salida a audífonos sigue APAGADA.');
@@ -429,8 +429,8 @@ function tick(t){
   if(state.started)renderHUD();
   if(openedPanel==='time'&&$('#score'))$('#score').textContent=score();
   if(state.mic){
-    const label=state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(0)+' dB*';
-    if($('#audioReadout'))$('#audioReadout').textContent=label;
+    const label=state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(1)+' dB ref.';
+    if($('#audioReadout'))$('#audioReadout').textContent=label;if($('#rawReadout'))$('#rawReadout').textContent=state.digitalDb.toFixed(1)+' dBFS';
     if($('#audioMeterFill'))$('#audioMeterFill').style.width=Math.round(state.relativeLevel*100)+'%';
     if($('#audioStatusText'))$('#audioStatusText').textContent='Micrófono activo · escucha '+(state.listen?'ACTIVA':'apagada')+' · visualización relativa';
   }
