@@ -317,18 +317,85 @@ function openPanel(kind){
  const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};const exp=$('#exportSession');if(exp)exp.onclick=exportSession;
 }
 document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.widget)));
+// Web Audio signal flow:
+// Microphone -> analyser (visual metering only)
+//            -> high-pass -> low-pass -> strong compressor -> very-low-gain -> system audio output.
+// The output gain starts at exactly zero and requires an explicit headphone confirmation.
+function updateAudioProcessing(){
+ if(!ac||!filterHigh||!filterLow||!monitorGain)return;
+ const now=ac.currentTime;
+ const modes={
+  natural:{hp:70,lp:12000,level:1},
+  soft:{hp:85,lp:2500,level:.68},
+  voice:{hp:320,lp:3500,level:.55},
+  muffled:{hp:80,lp:650,level:.39}
+ };
+ const mode=modes[state.preset]||modes.natural;
+ filterHigh.frequency.setTargetAtTime(mode.hp,now,.04);
+ filterLow.frequency.setTargetAtTime(mode.lp,now,.04);
+ const controls=(state.barrier?.63:1)*(state.protect&&state.scene==='cnc'?.5:1)*Math.min(1,distanceFactor());
+ // 0.12 maximum digital gain; low monitor default 0.018 even on 'Original'.
+ // No hardware sound-pressure limit is guaranteed by this software value.
+ const requested=state.listen&&state.headphones ? .12*(state.monitorVolume/100)*mode.level*controls : 0;
+ monitorGain.gain.setTargetAtTime(requested,now,.06);
+}
+function stopMonitor(){
+ if(!state.listen)return;
+ state.listen=false;
+ updateAudioProcessing();
+ logEvent('escucha','detenida');
+ notify('Escucha desactivada. Micrófono puede seguir animando las ondas.');
+}
+async function toggleMonitor(){
+ if(state.listen){stopMonitor();if(openedPanel==='audio')openPanel('audio');return}
+ if(!state.headphones){notify('Confirma primero que tienes audífonos conectados y el volumen del iPhone bajo.');return}
+ if(!state.mic||!ac||!monitorGain){notify('Primero activa el micrófono y después inicia la escucha.');return}
+ try {
+  await ac.resume();
+  if(ac.state!=='running'){notify('Safari suspendió la salida de audio. Vuelve a pulsar «Escuchar».');return}
+  state.listen=true;updateAudioProcessing();logEvent('escucha','iniciada_con_audifonos_confirmados');
+  notify('Escucha a nivel bajo activada. Prueba los filtros. Si oyes silbidos, detenla.');
+  if(openedPanel==='audio')openPanel('audio');
+ }catch(e){state.listen=false;updateAudioProcessing();notify('No se puede iniciar la salida: '+e.message)}
+}
 async function toggleMic(){
- const returnTo=openedPanel==='scene'?'scene':'scene';
  if(state.mic){
-  stream?.getTracks().forEach(t=>t.stop());stream=null;logEvent('microfono','apagado');try{await ac?.close()}catch(e){}
-  ac=null;analyser=null;samples=null;state.mic=false;openPanel(returnTo);renderHUD();notify('Micrófono desactivado.');return
+  stopMonitor();if(monitorGain&&ac)monitorGain.gain.value=0;
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  logEvent('microfono','apagado');
+  try{await ac?.close()}catch(e){}
+  ac=null;micSource=null;analyser=null;samples=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
+  state.mic=false;state.calOffset=null;state.refDb=null;state.digitalDb=-100;state.relativeLevel=0;
+  renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');notify('Micrófono apagado. Sin reproducción.');
+  return;
  }
- try{
-  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,autoGainControl:false,noiseSuppression:false}});
-  ac=new(window.AudioContext||window.webkitAudioContext)();analyser=ac.createAnalyser();analyser.fftSize=1024;samples=new Uint8Array(analyser.fftSize);
-  ac.createMediaStreamSource(stream).connect(analyser);state.mic=true;logEvent('microfono','encendido');openPanel(returnTo);renderHUD();
-  notify('Micrófono activo: sólo anima ondas, no mide presión sonora ni localiza fuentes.')
- }catch(e){notify('No se pudo activar el audio: '+e.message)}
+ if(!navigator.mediaDevices?.getUserMedia||!window.isSecureContext){notify('El micrófono requiere HTTPS y permiso del navegador.');return}
+ try {
+  stream=await navigator.mediaDevices.getUserMedia({audio:{
+   channelCount:1,echoCancellation:false,noiseSuppression:false,autoGainControl:false
+  },video:false});
+  ac=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  micSource=ac.createMediaStreamSource(stream);
+  analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.45;
+  samples=new Uint8Array(analyser.fftSize);micSource.connect(analyser);
+  filterHigh=ac.createBiquadFilter();filterHigh.type='highpass';filterHigh.frequency.value=70;
+  filterLow=ac.createBiquadFilter();filterLow.type='lowpass';filterLow.frequency.value=12000;
+  limiter=ac.createDynamicsCompressor();
+  limiter.threshold.value=-35;limiter.knee.value=0;limiter.ratio.value=18;limiter.attack.value=.003;limiter.release.value=.20;
+  monitorGain=ac.createGain();monitorGain.gain.value=0;
+  micSource.connect(filterHigh);filterHigh.connect(filterLow);filterLow.connect(limiter);limiter.connect(monitorGain);monitorGain.connect(ac.destination);
+  state.mic=true;state.listen=false;state.calOffset=null;state.refDb=null;
+  updateAudioProcessing();logEvent('microfono','encendido_sin_salida');
+  renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');
+  notify('Micrófono activo: ondas y nivel digital. La salida a audífonos sigue APAGADA.');
+ }catch(e){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  if(monitorGain)monitorGain.gain.value=0;
+  try{await ac?.close()}catch(_){}
+  ac=null;analyser=null;samples=null;micSource=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
+  state.mic=false;state.listen=false;notify('No se pudo activar el micrófono: '+e.message);
+  if(openedPanel)openPanel(openedPanel);
+ }
 }
 function tick(t){
  const dt=Math.min((t-lastTime)/1000||.016,.1);lastTime=t;
@@ -352,5 +419,6 @@ function tick(t){
  requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
-window.addEventListener('pagehide',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());if(state.started&&window.XR8)try{XR8.stop()}catch(e){}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(monitorGain)monitorGain.gain.value=0;stopMonitor()}});
+window.addEventListener('pagehide',()=>{if(monitorGain)monitorGain.gain.value=0;if(stream)stream.getTracks().forEach(t=>t.stop());if(state.started&&window.XR8)try{XR8.stop()}catch(e){}});
 </script></body></html>
