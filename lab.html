@@ -30,7 +30,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #75f3d5;outline-offse
 #quickCompare{position:absolute;z-index:7;right:53px;top:calc(env(safe-area-inset-top) + 108px);background:#0d3443cc;color:#e9fffa;border:1px solid #6cb9af7c;border-radius:20px;padding:9px;font-size:10px}
 #bottom{position:absolute;z-index:8;left:11px;right:11px;bottom:calc(env(safe-area-inset-bottom) + 12px)}
 #explain{font-size:11px;line-height:1.5;color:#ecfcf9;margin:0 10px 12px;text-shadow:0 1px 7px #001;max-width:80%}
-#dock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;border:1px solid #7abeb362;background:#071f2cd9;border-radius:18px;padding:8px;backdrop-filter:blur(18px)}
+#dock{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-width:350px;margin:0 auto;border:1px solid #7abeb362;background:#071f2cd9;border-radius:18px;padding:8px;backdrop-filter:blur(18px)}
 #dock button{background:transparent;color:#c2d9d8;border:0;border-radius:12px;min-height:55px;font-size:10px;font-weight:760;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center}
 #dock b{font-size:23px;font-weight:500}#dock button.on{color:#8cffe0;background:#27938255}
 #panel{display:none;position:absolute;z-index:9;bottom:calc(env(safe-area-inset-bottom) + 105px);left:12px;right:12px;max-width:450px;margin:auto;background:#0a2a36f2;border:1px solid #83c9bd85;border-radius:18px;padding:14px 15px;box-shadow:0 12px 35px #000b;max-height:51dvh;overflow:auto;backdrop-filter:blur(20px)}
@@ -80,10 +80,10 @@ button:focus-visible,input:focus-visible{outline:2px solid #75f3d5;outline-offse
 <span id="eppLabel">Plano</span></button>
 <button id="quickCompare">◫ Comparar</button><button id="mutebtn">■ Silenciar</button>
 <div id="bottom"><div id="explain">El micrófono transforma el ambiente en color. Los cambios visuales representan el sonido, no sus efectos fisiológicos.</div>
-<nav id="dock"><button data-mode="observe" class="on"><b>◉</b>Ambiente</button><button data-mode="intervene"><b>◈</b>Intervenir</button><button data-mode="audio"><b>♫</b>Escuchar</button><button data-mode="study"><b>✓</b>Evaluar</button></nav></div>
+<nav id="dock"><button data-mode="audio"><b>♫</b>Escuchar</button><button data-mode="study"><b>✓</b>Evaluar</button></nav></div>
 <section id="panel"><div id="panelHead"><span id="panelTitle">Controles</span><button id="closePanel" aria-label="Cerrar controles">×</button></div><div id="panelBody"></div></section>
 <div id="toast" role="status"></div>
-<section id="intro"><div class="modal"><div class="eyebrow">ECHOES · LENTE ACÚSTICO · 1.2 BETA</div><h1>Haz visible<br>lo que escuchas.</h1>
+<section id="intro"><div class="modal"><div class="eyebrow">ECHOES · LENTE ACÚSTICO · 1.3 BETA</div><h1>Haz visible<br>lo que escuchas.</h1>
 <p>Observa el ruido que capta tu teléfono como color y movimiento. Después utiliza audífonos para experimentar cómo se transforma la percepción del sonido.</p>
 <p>Se solicitarán permisos de cámara y micrófono. La escucha se inicia por separado y sólo cuando tú la actives.</p>
 <div id="introWarn">Prueba en un lugar tranquilo, sin tráfico ni maquinaria. La escala es relativa; no determina condiciones seguras. Se utiliza la intensidad nativa del micrófono en dBFS, sin conversión a decibeles acústicos (dBA).</div>
@@ -113,7 +113,7 @@ const num=x=>Number.isFinite(x)?x.toFixed(0):"—";
 function updateInfo(){
 $("#dot").classList.toggle("live",state.mic);
 $("#micStatus").textContent=state.mic?"Micrófono activo":"Micrófono sin señal";
-const modeName={observe:"LENTE ACÚSTICO · AMBIENTE",intervene:"INTERVENCIÓN SIMULADA · RECEPTOR",audio:"ESCUCHA · PROCESAMIENTO"}[state.mode]||"LENTE ACÚSTICO";
+const modeName=state.intervention==="ppe"?"LENTE ACÚSTICO · EPP VIRTUAL":state.mode==="audio"?"LENTE ACÚSTICO · AUDIO":"LENTE ACÚSTICO · AMBIENTE";
 $("#modeTitle").textContent=modeName;
 $("#explain").textContent=state.intervention!=="none"?
 "El indicador de color sigue mostrando la entrada ambiental. Sólo cambia la representación y el audio procesado.":"El nivel nativo en dBFS alimenta el color y las partículas. Acércate a una fuente estable para observar el cambio. No indica seguridad auditiva.";
@@ -127,9 +127,9 @@ allButtons();
 }
 function allButtons(){document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===state.mode))}
 function setMode(m){if(m==="study"){beginQuiz("post");return}
-if(state.mode===m&&$("#panel").classList.contains("open")){$("#panel").classList.remove("open");return}
-state.mode=m;if(m==="observe"){$("#panel").classList.remove("open");state.intervention="none";updateProcessing()}else renderPanel();
-updateInfo()}
+if(m!=="audio")return;
+if($("#panel").classList.contains("open")){$("#panel").classList.remove("open");state.mode="observe";updateInfo();return}
+state.mode="audio";renderPanel();updateInfo();}
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
 $("#closePanel").onclick=()=>$("#panel").classList.remove("open");
 $("#reduced").onclick=()=>{state.reduced=!state.reduced;$("#reduced").classList.toggle("active",state.reduced)};
@@ -141,19 +141,12 @@ $("#eppToggle").onclick=()=>{
  log("epp_rapido",enable?"virtual_on":"off");
  updateProcessing();
  updateInfo();
- if(state.mode==="intervene"&&$("#panel").classList.contains("open"))renderPanel();
  toast(enable?"EPP virtual activo: audio atenuado digitalmente. El ruido ambiental no disminuye.":"Audio plano: sin atenuación virtual. La escucha sigue bajo tu control.");
 };
 $("#technical").onclick=()=>{toast("Entrada nativa: "+num(state.level)+" dBFS RMS · pico "+num(state.peakDbfs)+" dBFS · "+state.inputLabel.slice(0,35)+". Escala relativa, no dBA.")};
 function renderPanel(){
 $("#panel").classList.add("open");
-$("#panelTitle").textContent=state.mode==="audio"?"Audio por audífonos":"Transformación perceptiva";
-if(state.mode==="intervene"){
-const choices=[["none","Sin filtro"],["ppe","EPP virtual"],["low","Graves atenuados"],["muffled","Agudos opacados"]];
-$("#panelBody").innerHTML='<div class="options">'+choices.map(([key,label])=>'<button data-intervention="'+key+'" class="'+(state.intervention===key?'selected':'')+'">'+label+'</button>').join("")+'</div>'+
-'<p>La entrada ambiental no cambia. Los filtros modifican exclusivamente la señal reproducida. El EPP virtual es ilustrativo y no representa la protección real de los audífonos.</p>';
-document.querySelectorAll("[data-intervention]").forEach(b=>b.onclick=()=>{state.intervention=b.dataset.intervention;log("intervencion",state.intervention);updateProcessing();renderPanel();updateInfo()});
-}
+$("#panelTitle").textContent="Audio por audífonos";
 if(state.mode==="audio"){
 $("#panelBody").innerHTML=
 '<div class="line"><label><input id="headphonesCheck" type="checkbox" '+(state.headphones?'checked':'')+'>Tengo audífonos conectados y el volumen del sistema bajo</label></div>'+
