@@ -134,3 +134,11 @@ La experiencia actual deja atrás los widgets de escena CNC/oficina/calle, tiemp
 - Se añadió cálculo de pico para resaltar eventos breves de la señal; seguimiento visual con ataque aproximado de 55 ms y liberación de 380 ms, filtro de color más visible, ondas más intensas y densidad de partículas variable.
 - No se modifica la ganancia ni se promete mejorar la sensibilidad física del micrófono: sólo su **traducción visual**. Si iOS aplica ganancia automática o limita la captura, la señal nativa podría variar menos con la distancia; se debe verificar en iPhone frente a una fuente estable a diferentes distancias.
 - Se mantienen la separación entre ambiente captado y filtro perceptivo, la reproducción opcional con audífonos y la evaluación educativa.
+
+## ECHOES v1.2 beta — Escala extendida y EPP virtual inmediato (13 nov 2026)
+
+La vista principal en `lab.html` alarga la escala azul→rojo de 135 a 238 px en pantallas normales y de 94 a 158 px en pantallas cortas, amplía ligeramente la barra y el indicador blanco. En el lado opuesto aparece un **icono de oreja**, con un **tapón visual** cuando está activo; alterna con un toque entre la señal sin atenuación virtual y **EPP virtual**. No activa automáticamente la reproducción por audífonos: la salida sigue condicionada a confirmación de audífonos, volumen bajo y orden explícita «Escuchar». La atenuación virtual se aplica al filtro/gain de recepción únicamente y no cambia el nivel digital del micrófono ni la escala del entorno.
+
+Se intensificaron las capas visuales conforme se aproxima al extremo cálido: tintes, densidad y tamaño de partículas, ondas y halo rojo periférico suave. La animación sigue el nivel **nativo en dBFS**, sin volver a introducir la conversión +93.5 dB. Los efectos rojos no son un indicador validado de peligro o de daño al oído; el usuario puede activar reducción de movimiento. Se aumentó el arreglo de partículas para evitar accesos inexistentes con la densidad mayor.
+
+Pruebas realizadas en el código: sintaxis JavaScript, existencia y unicidad de ID de interfaz, manejador de pulsación de EPP y control de límite de cantidad de partículas. Pendiente de prueba en Safari/iPhone con entrada y audífonos reales.
