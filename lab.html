@@ -86,6 +86,24 @@ const distanceFactor=()=>{
  return clamp(baseDistance/Math.max(.35,d),.6,1.2);
 };
 let openedPanel=null;
+const sessionStart=performance.now();
+const events=[];
+function logEvent(type,detail){
+ // Only actions and elapsed milliseconds: no camera frames, audio or physical positions.
+ events.push({elapsedMs:Math.round(performance.now()-sessionStart),type,detail:String(detail??'')});
+}
+function exportSession(){
+ const summary={prototype:'ECHOES',version:'0.6-beta',purpose:'prueba educativa de interacción',anonymous:true,
+ scenario:state.scene,stepsCompleted:missionCount(),quizAnswer:state.answered||'sin responder',
+ currentDidacticIndex:score(),events:[...events],
+ note:'No son datos de exposición acústica ni resultados clínicos. Sin imágenes, audio o coordenadas.'};
+ const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
+ const link=document.createElement('a'),url=URL.createObjectURL(blob);
+ link.href=url;link.download='echoes-sesion-educativa.json';link.style.display='none';document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),10000);
+ notify('Bitácora descargada: acciones, tiempos y respuestas; sin audio ni video.');
+}
+
 function missionFlags(){return [state.placed,state.barrier,state.protect&&state.scene==='cnc',state.movedTime,state.answered==='receptor'];}
 function missionCount(){return missionFlags().filter(Boolean).length;}
 function placeMode(on){
@@ -114,7 +132,7 @@ function placeSource(event){
  }
  source.position.set(hit.x,0,hit.z);
  baseDistance=Math.max(.35,xrCamera.position.distanceTo(source.position));
- state.placed=true;placeMode(false);syncBarrier();renderHUD();
+ state.placed=true;logEvent('colocar_fuente','colocacion manual, sin coordenadas');placeMode(false);syncBarrier();renderHUD();
  notify('Fuente virtual colocada. La posición no se detectó por sonido ni se midió acústicamente.');
  if(openedPanel==='mission')openPanel('mission');
 }
@@ -231,36 +249,36 @@ function openPanel(kind){
  '<div class="quiz"><button class="choice '+(state.answered==='source'?'wrong':'')+'" data-answer="source">Silencia la máquina y el taller</button>'+
  '<button class="choice '+(state.answered==='receptor'?'correct':'')+'" data-answer="receptor">Reduce el sonido que llega al oído</button></div>'+
  '<div id="info">'+(state.answered==='source'?'No: el EPP no reduce la emisión de la máquina. Prueba la segunda respuesta.':state.answered==='receptor'?'Correcto: protege al receptor, no silencia la fuente.':done===5?'¡Misión completada!':'Continúa con los controles y vuelve aquí para revisar tus decisiones.')+'</div>'+
- '<p style="margin-top:16px"><button class="choice" id="missionPlace">⊕ Ubicar / cambiar fuente virtual</button></p>';
+ '<p style="margin-top:16px"><button class="choice" id="missionPlace">⊕ Ubicar / cambiar fuente virtual</button></p>'+'<p><button class="choice" id="exportSession">↓ Descargar bitácora de la sesión (JSON)</button></p>'+'<p>No se almacena ni envía información automáticamente. El archivo registra decisiones y tiempos relativos, pero no imágenes, sonido ni coordenadas.</p>';
  }
  $('#sheetBody').innerHTML=body;$('#shade').classList.add('open');$('#sheet').classList.add('open');
  document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{
    const k=b.dataset.key,v=b.dataset.val;
-   if(k==='scene'){state.scene=v;state.protect=false;}
-   else if(k==='barrier')state.barrier=v==='on';
-   else if(k==='distance')state.distance=v==='on';
-   else if(k==='protect')state.protect=v==='on';
+   if(k==='scene'){state.scene=v;state.protect=false;logEvent('escenario',v);}
+   else if(k==='barrier'){state.barrier=v==='on';logEvent('barrera',v);}
+   else if(k==='distance'){state.distance=v==='on';logEvent('distancia_didactica',v);}
+   else if(k==='protect'){state.protect=v==='on';logEvent('epp',v);}
    syncBarrier();renderHUD();openPanel(kind);
  });
  const range=$('#hInput');if(range)range.oninput=e=>{
-   state.hours=Number(e.target.value);state.movedTime=true;
+   state.hours=Number(e.target.value);state.movedTime=true;logEvent('duracion_horas',state.hours);
    $('#hVal').textContent=state.hours;$('#score').textContent=score();renderHUD();
  };
  const micBtn=$('#micBtn');if(micBtn)micBtn.onclick=toggleMic;
- document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{state.answered=b.dataset.answer;renderHUD();openPanel('mission')});
- const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};
+ document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{state.answered=b.dataset.answer;logEvent('pregunta_epp',state.answered);renderHUD();openPanel('mission')});
+ const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};const exp=$('#exportSession');if(exp)exp.onclick=exportSession;
 }
 document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.widget)));
 async function toggleMic(){
  const returnTo=openedPanel==='scene'?'scene':'scene';
  if(state.mic){
-  stream?.getTracks().forEach(t=>t.stop());stream=null;try{await ac?.close()}catch(e){}
+  stream?.getTracks().forEach(t=>t.stop());stream=null;logEvent('microfono','apagado');try{await ac?.close()}catch(e){}
   ac=null;analyser=null;samples=null;state.mic=false;openPanel(returnTo);renderHUD();notify('Micrófono desactivado.');return
  }
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,autoGainControl:false,noiseSuppression:false}});
   ac=new(window.AudioContext||window.webkitAudioContext)();analyser=ac.createAnalyser();analyser.fftSize=1024;samples=new Uint8Array(analyser.fftSize);
-  ac.createMediaStreamSource(stream).connect(analyser);state.mic=true;openPanel(returnTo);renderHUD();
+  ac.createMediaStreamSource(stream).connect(analyser);state.mic=true;logEvent('microfono','encendido');openPanel(returnTo);renderHUD();
   notify('Micrófono activo: sólo anima ondas, no mide presión sonora ni localiza fuentes.')
  }catch(e){notify('No se pudo activar el audio: '+e.message)}
 }
