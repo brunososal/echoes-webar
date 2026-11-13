@@ -419,44 +419,82 @@ async function toggleMonitor(){
   if(openedPanel==='audio')openPanel('audio');
  }catch(e){state.listen=false;updateAudioProcessing();notify('No se puede iniciar la salida: '+e.message)}
 }
-async function toggleMic(){
- if(state.mic){
-  stopMonitor();if(monitorGain&&ac)monitorGain.gain.value=0;
-  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
-  logEvent('microfono','apagado');
-  try{await ac?.close()}catch(e){}
-  ac=null;micSource=null;analyser=null;samples=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
-  state.mic=false;state.digitalDb=-100;state.relativeLevel=0;
-  renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');notify('Micrófono apagado. Sin reproducción.');
-  return;
+async function probeAudioRoute(){
+ const md=navigator.mediaDevices;
+ if(!md?.enumerateDevices){state.routeLabel='Salida no verificable';return}
+ try{
+  const all=await md.enumerateDevices();
+  const outs=all.filter(d=>d.kind==='audiooutput');
+  const likely=outs.find(d=>/airpods|headphone|headset|buds|earbuds|beats|jabra|bose|bluetooth|sony/i.test(d.label||''));
+  state.routeLabel=likely?'Posible audífono: '+(likely.label||'externo').slice(0,24):outs.length?'Salida disponible; ruta no confirmada':'Salida no verificable en Safari';
+ }catch(_){state.routeLabel='Salida no verificable'}
+ const el=$('#routeStatus');if(el)el.textContent=state.routeLabel;
+}
+if(navigator.mediaDevices?.addEventListener){
+ navigator.mediaDevices.addEventListener('devicechange',()=>{
+  if(state.listen){stopMonitor();notify('Cambió un dispositivo de audio; detuve la escucha por seguridad.')}
+  void probeAudioRoute();
+ });
+}
+async function stopMic(){
+ stopMonitor();
+ if(monitorGain)monitorGain.gain.value=0;
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+ try{await ac?.close()}catch(_){}
+ ac=null;micSource=null;analyser=null;samples=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
+ state.mic=false;state.micStarting=false;state.digitalDb=-100;state.relativeLevel=0;
+ logEvent('microfono','apagado');
+ renderHUD();
+ if(openedPanel==='audio')openPanel('audio');
+ notify('Micrófono apagado.');
+}
+async function startMic(quiet=false){
+ if(state.mic||state.micStarting)return;
+ if(!navigator.mediaDevices?.getUserMedia||!window.isSecureContext){
+  notify('Micrófono no disponible. Se requiere HTTPS y permiso de Safari.');return;
  }
- if(!navigator.mediaDevices?.getUserMedia||!window.isSecureContext){notify('El micrófono requiere HTTPS y permiso del navegador.');return}
- try {
+ state.micStarting=true;renderHUD();
+ try{
+  // Open Web Audio while still handling the user's initial start gesture.
+  ac=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  const unlock=ac.resume().catch(()=>{});
   stream=await navigator.mediaDevices.getUserMedia({audio:{
    channelCount:1,echoCancellation:false,noiseSuppression:false,autoGainControl:false
   },video:false});
-  ac=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  await unlock;
   micSource=ac.createMediaStreamSource(stream);
   analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.45;
-  samples=new Uint8Array(analyser.fftSize);micSource.connect(analyser);
+  samples=new Uint8Array(analyser.fftSize);
+  micSource.connect(analyser);
   filterHigh=ac.createBiquadFilter();filterHigh.type='highpass';filterHigh.frequency.value=70;
   filterLow=ac.createBiquadFilter();filterLow.type='lowpass';filterLow.frequency.value=12000;
-  limiter=ac.createDynamicsCompressor();
-  limiter.threshold.value=-35;limiter.knee.value=0;limiter.ratio.value=18;limiter.attack.value=.003;limiter.release.value=.20;
+  limiter=ac.createDynamicsCompressor();limiter.threshold.value=-35;limiter.knee.value=0;
+  limiter.ratio.value=18;limiter.attack.value=.003;limiter.release.value=.2;
   monitorGain=ac.createGain();monitorGain.gain.value=0;
-  micSource.connect(filterHigh);filterHigh.connect(filterLow);filterLow.connect(limiter);limiter.connect(monitorGain);monitorGain.connect(ac.destination);
-  state.mic=true;state.listen=false;state.inputLabel=(stream.getAudioTracks()[0]?.label||'No identificado').slice(0,80);
-  updateAudioProcessing();logEvent('microfono','encendido_sin_salida');
-  renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');
-  notify('Micrófono activo: ondas y nivel digital. La salida a audífonos sigue APAGADA.');
+  micSource.connect(filterHigh);filterHigh.connect(filterLow);
+  filterLow.connect(limiter);limiter.connect(monitorGain);monitorGain.connect(ac.destination);
+  state.mic=true;state.listen=false;
+  state.inputLabel=(stream.getAudioTracks()[0]?.label||'Micrófono sin identificar').slice(0,80);
+  state.micStarting=false;updateAudioProcessing();
+  logEvent('microfono','activo_desde_inicio_sin_salida');
+  renderHUD();void probeAudioRoute();
+  if(openedPanel==='audio')openPanel('audio');
+  notify('Micrófono activo. Ondas en tiempo real; escucha en audífonos APAGADA.');
+  if(ac.state==='suspended')notify('Micrófono permitido. Si las ondas no reaccionan, toca ● Mic para reiniciar.');
  }catch(e){
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
   if(monitorGain)monitorGain.gain.value=0;
   try{await ac?.close()}catch(_){}
   ac=null;analyser=null;samples=null;micSource=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
-  state.mic=false;state.listen=false;notify('No se pudo activar el micrófono: '+e.message);
-  if(openedPanel)openPanel(openedPanel);
+  state.micStarting=false;state.mic=false;state.listen=false;
+  renderHUD();if(openedPanel==='audio')openPanel('audio');
+  notify('Sin micrófono: '+e.message+'. La RA continúa con animación simulada.');
  }
+}
+async function toggleMic(){
+ if(state.mic){await stopMic();return}
+ if(state.micStarting)return;
+ await startMic(false);
 }
 function tick(t){
  const dt=Math.min((t-lastTime)/1000||.016,.1);lastTime=t;
