@@ -173,21 +173,80 @@ $('#start').addEventListener('click',begin);
 window.addEventListener('xrloaded',()=>{$('#bootStatus').textContent='Motor espacial listo para iniciar.'});
 window.addEventListener('error',e=>{if(!state.started)$('#bootStatus').textContent='Error de carga: '+(e.message||'revisa conexión')});
 $('#recenter').addEventListener('click',()=>{if(!state.started)return;try{XR8.XrController.recenter();state.placed=false;state.placing=false;state.barrier=false;state.answered=null;state.movedTime=false;if(source)source.position.set(0,0,0);if(wall)wall.visible=false;placeMode(false);renderHUD();notify('Seguimiento reiniciado. Puedes volver a ubicar la fuente.')}catch(e){notify('No se pudo reiniciar: '+e.message)}});
-function closePanel(){$('#sheet').classList.remove('open');$('#shade').classList.remove('open')}
+function closePanel(){openedPanel=null;$('#sheet').classList.remove('open');$('#shade').classList.remove('open')}
 $('#close').addEventListener('click',closePanel);$('#shade').addEventListener('click',closePanel);
 function choice(label,key,val,selected){return '<button class="choice '+(selected?'on':'')+'" data-key="'+key+'" data-val="'+val+'">'+label+'</button>'}
 function openPanel(kind){
-const titles={scene:'Escenario',control:'Medidas preventivas',time:'Tiempo de exposición',audio:'Audio reactivo'};
-$('#sheetTitle').textContent=titles[kind];let body='';
-if(kind==='scene')body='<p>El contexto modifica la explicación y la animación, pero no identifica automáticamente fuentes reales.</p><div class="grid">'+choice('🏭 Taller CNC','scene','cnc',state.scene==='cnc')+choice('🏢 Oficina','scene','office',state.scene==='office')+choice('🚙 Calle','scene','street',state.scene==='street')+'</div>';
-if(kind==='control')body='<label>Intervenciones didácticas</label><div class="grid">'+choice('Sin barrera','barrier','off',!state.barrier)+choice('Con barrera','barrier','on',state.barrier)+choice('Cerca de fuente','distance','off',!state.distance)+choice('Más lejos','distance','on',state.distance)+'</div>'+(state.scene==='cnc'?'<label>Protección personal</label><div class="grid">'+choice('Sin EPP','protect','off',!state.protect)+choice('Con EPP ajustado','protect','on',state.protect)+'</div>':'')+'<div id="info">Las intervenciones son simbólicas. El EPP no reduce el sonido de la fuente.</div>';
-if(kind==='time')body='<p>Huella relativa por permanencia, sin unidad física ni equivalencia con dosis acústica.</p><label>Horas hipotéticas: <strong id="hVal">'+state.hours+'</strong></label><input id="hInput" type="range" min=".5" max="8" step=".5" value="'+state.hours+'"><div id="info">Huella ilustrativa: <strong id="score">'+score()+'</strong> / 100</div>';
-if(kind==='audio')body='<p>El micrófono modifica las ondas según la amplitud digital relativa. No mide dBA.</p><button class="choice on" id="micBtn">'+(state.mic?'Desactivar micrófono':'Activar micrófono')+'</button><label>Intensidad simulada</label><input id="intInput" type="range" min=".1" max="1" step=".05" value="'+state.intensity+'"><div id="info">La señal se procesa en tu teléfono sin grabaciones.</div>';
-$('#sheetBody').innerHTML=body;$('#shade').classList.add('open');$('#sheet').classList.add('open');
-document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{const k=b.dataset.key,v=b.dataset.val;if(k==='scene')state.scene=v;else state[k]=v==='on';renderHUD();openPanel(kind)});
-if($('#hInput'))$('#hInput').oninput=e=>{state.hours=Number(e.target.value);$('#hVal').textContent=state.hours;$('#score').textContent=score()};
-if($('#intInput'))$('#intInput').oninput=e=>{state.intensity=Number(e.target.value)};
-if($('#micBtn'))$('#micBtn').onclick=toggleMic;
+ openedPanel=kind;
+ const titles={scene:'Escenarios y audio',control:'Intervenciones preventivas',time:'Tiempo y exposición',effects:'Consecuencias posibles',mission:'Misión: intervén el ruido',audio:'Sonido reactivo'};
+ $('#sheetTitle').textContent=titles[kind]||'Opciones';
+ let body='';
+ if(kind==='scene'){
+ body='<p>Elige un contexto. La fuente se coloca manualmente y el micrófono no determina su posición.</p><div class="grid">'+
+ choice('🏭 Taller CNC','scene','cnc',state.scene==='cnc')+
+ choice('🏢 Oficina','scene','office',state.scene==='office')+
+ choice('🚙 Calle','scene','street',state.scene==='street')+
+ '</div><label>Visualización reactiva al sonido</label><button class="choice '+(state.mic?'on':'')+'" id="micBtn">'+(state.mic?'■ Apagar micrófono':'◉ Activar micrófono')+'</button><p>Las ondas responden a la intensidad relativa captada, pero nunca son un mapa de ruido real.</p>';
+ }
+ if(kind==='control'){
+ body='<p>Las medidas no están calibradas. Compara los principios: reducir emisión o propagación no es igual que proteger el oído.</p>'+
+ '<label>Propagación</label><div class="grid">'+choice('Sin barrera','barrier','off',!state.barrier)+choice('Poner barrera 3D','barrier','on',state.barrier)+'</div>'+
+ '<label>Separación espacial</label><p>Camina despacio alrededor del objeto en un lugar seguro: el sistema utiliza la posición relativa para cambiar un índice <strong>didáctico</strong>. No es una medición de distancia ni una atenuación acústica validada.</p>'+
+ (state.scene==='cnc'?'<label>Protección del oído</label><div class="grid">'+choice('Sin protección','protect','off',!state.protect)+choice('Con EPP ajustado','protect','on',state.protect)+'</div>':'')+
+ '<div id="info">La barrera virtual se ubica entre la fuente y la posición del teléfono cuando la activas. Los anillos de la fuente continúan visibles aunque uses EPP: el ruido ambiental no desaparece.</div>';
+ }
+ if(kind==='time'){
+ body='<p>Cambiar el tiempo debe afectar a la exposición ilustrativa y no a la emisión de la fuente.</p>'+
+ '<label>Duración de ejemplo: <strong id="hVal">'+state.hours+'</strong> horas</label>'+
+ '<input id="hInput" type="range" min=".5" max="8" step=".5" value="'+state.hours+'">'+
+ '<div id="info">Huella relativa de aprendizaje: <strong id="score">'+score()+'</strong> / 100. Sin unidades, sin equivalencia con dosis real.</div>'+
+ '<p>Compara primero 8 horas y luego 1 hora. ¿Qué cambia aunque la máquina continúe emitiendo ruido?</p>';
+ }
+ if(kind==='effects'){
+ const facts=[
+ ['👂 Pérdida auditiva','La exposición repetida a niveles elevados puede producir daño auditivo permanente. El valor mostrado aquí no estima ese riesgo para ti.'],
+ ['〰 Acúfenos','Zumbidos o pitidos que pueden asociarse a exposición al ruido. No se puede diagnosticar su aparición con este prototipo.'],
+ ['🧠 Fatiga y atención','En determinadas condiciones, el ruido puede interferir con la concentración, aumentar molestia y contribuir a fatiga.'],
+ ['💬 Comunicación','El ruido puede enmascarar instrucciones y alarmas. Reducirlo también ayuda a reconocer señales importantes.']
+ ];
+ body='<p>Estos efectos tienen respaldo general, pero <strong>ninguno se predice desde el micrófono</strong>. La simulación sólo permite comprender relaciones.</p>'+
+ facts.map(([title,desc])=>'<div class="facts"><b>'+title+'</b><p>'+desc+'</p></div>').join('')+
+ '<div id="info">No se presentan mareos ni dolores de cabeza como consecuencia universal de una duración e intensidad determinada.</div>';
+ }
+ if(kind==='mission'){
+ const flags=missionFlags(),done=missionCount(),todo=[
+ 'Coloca una fuente virtual con «Ubicar fuente» y toca la imagen.',
+ 'Activa una barrera entre la fuente y el observador.',
+ 'En el escenario CNC, activa el EPP y observa que las ondas siguen.',
+ 'Cambia el tiempo para comparar la huella didáctica.',
+ 'Responde: ¿qué hace el EPP auditivo correctamente ajustado?'
+ ];
+ body='<p>Explora las decisiones preventivas. Este recorrido genera evidencia sobre <strong>comprensión de conceptos</strong>, no sobre daño real.</p>'+
+ '<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#beefdf">PROGRESO <strong>'+done+' / 5</strong></div>'+
+ '<div class="progress-track"><div style="width:'+(done*20)+'%"></div></div>'+
+ todo.map((item,i)=>'<div class="challenge-item"><span class="challenge-dot '+(flags[i]?'done':'')+'">'+(flags[i]?'✓':(i+1))+'</span><div>'+item+'</div></div>').join('')+
+ '<label>Comprobación de aprendizaje</label>'+
+ '<div class="quiz"><button class="choice '+(state.answered==='source'?'wrong':'')+'" data-answer="source">Silencia la máquina y el taller</button>'+
+ '<button class="choice '+(state.answered==='receptor'?'correct':'')+'" data-answer="receptor">Reduce el sonido que llega al oído</button></div>'+
+ '<div id="info">'+(state.answered==='source'?'No: el EPP no reduce la emisión de la máquina. Prueba la segunda respuesta.':state.answered==='receptor'?'Correcto: protege al receptor, no silencia la fuente.':done===5?'¡Misión completada!':'Continúa con los controles y vuelve aquí para revisar tus decisiones.')+'</div>'+
+ '<p style="margin-top:16px"><button class="choice" id="missionPlace">⊕ Ubicar / cambiar fuente virtual</button></p>';
+ }
+ $('#sheetBody').innerHTML=body;$('#shade').classList.add('open');$('#sheet').classList.add('open');
+ document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{
+   const k=b.dataset.key,v=b.dataset.val;
+   if(k==='scene'){state.scene=v;state.protect=false;}
+   else if(k==='barrier')state.barrier=v==='on';
+   else if(k==='distance')state.distance=v==='on';
+   else if(k==='protect')state.protect=v==='on';
+   syncBarrier();renderHUD();openPanel(kind);
+ });
+ const range=$('#hInput');if(range)range.oninput=e=>{
+   state.hours=Number(e.target.value);state.movedTime=true;
+   $('#hVal').textContent=state.hours;$('#score').textContent=score();renderHUD();
+ };
+ const micBtn=$('#micBtn');if(micBtn)micBtn.onclick=toggleMic;
+ document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{state.answered=b.dataset.answer;renderHUD();openPanel('mission')});
+ const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};
 }
 document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.widget)));
 async function toggleMic(){if(state.mic){stream?.getTracks().forEach(t=>t.stop());stream=null;try{await ac?.close()}catch(e){}ac=null;analyser=null;state.mic=false;openPanel('audio');renderHUD();return}try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,autoGainControl:false,noiseSuppression:false}});ac=new(window.AudioContext||window.webkitAudioContext)();analyser=ac.createAnalyser();analyser.fftSize=1024;samples=new Uint8Array(analyser.fftSize);ac.createMediaStreamSource(stream).connect(analyser);state.mic=true;openPanel('audio');renderHUD();notify('Micrófono activo. No se guarda audio.')}catch(e){notify('No se pudo activar el audio: '+e.message)}}
