@@ -85,3 +85,13 @@ La aplicación no puede saber de forma fiable si el audio está saliendo por los
 Referencias de contexto sobre la calibración: [NIOSH Sound Level Meter App](https://www.cdc.gov/niosh/noise/about/app.html) y [Web Audio API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API).
 
 **Validación pendiente:** comportamiento de entrada/salida Bluetooth, latencia, permisos de micrófono y cámara simultáneos, y respuesta de filtros en Safari iPhone real.
+
+## v0.8 (beta) — Referencia del sonómetro del usuario (13 nov 2026)
+
+El usuario comparó el mismo ambiente y observó aproximadamente **−44 a −45 dBFS** en ECHOES frente a **48–50 dB** en su sonómetro. Se toma el punto medio **−44.5 dBFS ↔ 49 dB** y se aplica una **corrección provisional de +93.5 dB** a la lectura digital del micrófono, únicamente como referencia didáctica.
+
+Ejemplo: `−44.5 dBFS + 93.5 dB = 49.0 dB referenciados (aprox.)`.
+
+La interfaz muestra simultáneamente el número referenciado y el valor original en dBFS; el usuario puede recalibrar durante otra sesión introduciendo una lectura externa, o volver al valor sin referencia. El offset no constituye una calibración multibanda, no aplica ponderación A ni valida un nivel dBA; no sirve para evaluaciones normativas o protección auditiva. El ajuste puede dejar de ser válido al cambiar de micrófono, usar AirPods como entrada o variar el procesamiento de audio del sistema. Para comparar, mantener ambos equipos próximos y en condiciones estables durante 15–30 segundos.
+
+**Estado de validación:** código publicado y comprobación de sintaxis JavaScript realizada. La respuesta del indicador en Safari iPhone real todavía debe probarse después de estos cambios.
