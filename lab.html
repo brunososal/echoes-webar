@@ -65,7 +65,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #75f3d5;outline-offse
 <div id="top"><div class="brand">ECHOES<span>.</span></div><button class="round" id="reduced">◌ Efectos suaves</button><button class="round" id="technical">⚙</button></div>
 <div id="level"><i id="dot"></i><span id="micStatus">Esperando permisos</span></div>
 <div id="modeTitle">LENTE ACÚSTICO · AMBIENTE</div>
-<div id="meter" role="img" aria-label="Escala cromática de intensidad relativa del azul al rojo"><small>MIC</small><div id="gradient"><i id="pin"></i></div></div>
+<div id="meter" role="img" aria-label="Escala cromática de energía de la señal digital nativa dBFS, de azul a rojo; no expresa seguridad auditiva"><small>MIC</small><div id="gradient"><i id="pin"></i></div></div>
 <button id="quickCompare">◫ Comparar</button><button id="mutebtn">■ Silenciar</button>
 <div id="bottom"><div id="explain">El micrófono transforma el ambiente en color. Los cambios visuales representan el sonido, no sus efectos fisiológicos.</div>
 <nav id="dock"><button data-mode="observe" class="on"><b>◉</b>Ambiente</button><button data-mode="intervene"><b>◈</b>Intervenir</button><button data-mode="audio"><b>♫</b>Escuchar</button><button data-mode="study"><b>✓</b>Evaluar</button></nav></div>
@@ -74,7 +74,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #75f3d5;outline-offse
 <section id="intro"><div class="modal"><div class="eyebrow">ECHOES · LENTE ACÚSTICO · 1.0 BETA</div><h1>Haz visible<br>lo que escuchas.</h1>
 <p>Observa el ruido que capta tu teléfono como color y movimiento. Después utiliza audífonos para experimentar cómo se transforma la percepción del sonido.</p>
 <p>Se solicitarán permisos de cámara y micrófono. La escucha se inicia por separado y sólo cuando tú la actives.</p>
-<div id="introWarn">Prueba en un lugar tranquilo, sin tráfico ni maquinaria. La escala es relativa; no determina condiciones seguras. La calibración previa de +93.5 dB es sólo una referencia de un punto y no acredita una lectura dBA.</div>
+<div id="introWarn">Prueba en un lugar tranquilo, sin tráfico ni maquinaria. La escala es relativa; no determina condiciones seguras. Se utiliza la intensidad nativa del micrófono en dBFS, sin conversión a decibeles acústicos (dBA).</div>
 <button id="start" class="big">Iniciar cámara + micrófono</button><button class="secondary" id="startStudy">Primero: evaluación inicial opcional</button>
 </div></section>
 <section id="survey"><div class="modal"><div id="quiz"><div class="eyebrow" id="phaseTitle">EVALUACIÓN</div><p id="progress"></p><div id="question"></div><div id="answers"></div><button id="next" class="big" disabled>Continuar</button></div><div id="result"><div class="eyebrow">COMPARACIÓN DE RESPUESTAS</div><h1>¿Qué aprendiste?</h1><p>Porcentaje de respuestas correctas, no reducción del ruido.</p><div class="resultGrid"><div>Antes<b id="preScore">—</b></div><div>Después<b id="postScore">—</b></div></div><p id="comparison"></p><button class="big" id="export">Exportar sesión JSON</button><button class="secondary" id="closeStudy">Volver al lente</button></div></div></section>
@@ -91,7 +91,7 @@ const qs=[
 {q:"¿Un filtro digital equivale a un protector auditivo certificado?",a:["Sí, con cualquier audífono","No, es sólo una simulación","Sí, cuando cambia a verde"],c:1}
 ];
 const state={started:false,mic:false,micStarting:false,mode:"observe",intervention:"none",compare:false,reduced:matchMedia("(prefers-reduced-motion:reduce)").matches,
-listen:false,headphones:false,level:-100,smoothed:0,referenceOffset:93.5,referenceValid:true,volume:38,outputStatus:"No comprobada",
+listen:false,headphones:false,level:-100,smoothed:0,peakDbfs:-100,volume:38,outputStatus:"No comprobada",
 step:"pre",index:0,selected:null,pre:[],post:[],events:[],inputLabel:"No identificado"};
 let media=null,videoStream=null,audioCtx=null,source=null,analyser=null,timeBuf=null,preamp=null,hp=null,lp=null,limiter=null,softclip=null,output=null;
 let last=0,phase=0,lastUI=0,lastToast;
@@ -104,7 +104,7 @@ $("#micStatus").textContent=state.mic?"Micrófono activo":"Micrófono sin señal
 const modeName={observe:"LENTE ACÚSTICO · AMBIENTE",intervene:"INTERVENCIÓN SIMULADA · RECEPTOR",audio:"ESCUCHA · PROCESAMIENTO"}[state.mode]||"LENTE ACÚSTICO";
 $("#modeTitle").textContent=modeName;
 $("#explain").textContent=state.intervention!=="none"?
-"El indicador de color sigue mostrando la entrada ambiental. Sólo cambia la representación y el audio procesado.":"El micrófono alimenta el color y las partículas. La escala es relativa, no una medida certificada de riesgo.";
+"El indicador de color sigue mostrando la entrada ambiental. Sólo cambia la representación y el audio procesado.":"El nivel nativo en dBFS alimenta el color y las partículas. Acércate a una fuente estable para observar el cambio. No indica seguridad auditiva.";
 $("#mutebtn").classList.toggle("on",state.listen);
 allButtons();
 }
@@ -118,8 +118,7 @@ $("#closePanel").onclick=()=>$("#panel").classList.remove("open");
 $("#reduced").onclick=()=>{state.reduced=!state.reduced;$("#reduced").classList.toggle("active",state.reduced)};
 $("#quickCompare").onclick=()=>{state.compare=!state.compare;$("#split").classList.toggle("on",state.compare);$("#quickCompare").classList.toggle("active",state.compare)};
 $("#mutebtn").onclick=()=>stopListen();
-$("#technical").onclick=()=>{const val=state.referenceValid?num(state.level+state.referenceOffset)+" dB ref. aprox.":"Sin referencia";
-toast("Entrada: "+num(state.level)+" dBFS · "+val+" · "+state.inputLabel.slice(0,35)+". No es dBA validado.")};
+$("#technical").onclick=()=>{toast("Entrada nativa: "+num(state.level)+" dBFS RMS · pico "+num(state.peakDbfs)+" dBFS · "+state.inputLabel.slice(0,35)+". Escala relativa, no dBA.")};
 function renderPanel(){
 $("#panel").classList.add("open");
 $("#panelTitle").textContent=state.mode==="audio"?"Audio por audífonos":"Transformación perceptiva";
@@ -203,7 +202,6 @@ limiter=audioCtx.createDynamicsCompressor();limiter.threshold.value=-22;limiter.
 softclip=makeSoftclip(audioCtx);output=audioCtx.createGain();output.gain.value=0;
 source.connect(preamp);preamp.connect(hp);hp.connect(lp);lp.connect(limiter);limiter.connect(softclip);softclip.connect(output);output.connect(audioCtx.destination);
 state.inputLabel=media.getAudioTracks()[0].label||"Micrófono del dispositivo";
-if(/airpods|headphone|headset|beats|buds|bluetooth/i.test(state.inputLabel))state.referenceValid=false;
 state.mic=true;updateProcessing();toast("Micrófono activo. Salida apagada hasta que pulses Escuchar.");
 }catch(e){toast("No se pudo procesar audio: "+e.message)}
 }
@@ -234,7 +232,7 @@ $("#comparison").textContent=state.pre.length===qs.length?"Variación: "+((b-a)*
 };
 $("#closeStudy").onclick=()=>$("#survey").style.display="none";
 $("#export").onclick=()=>{
-const data={version:"1.0-beta",pre:state.pre,post:state.post,actions:state.events,referenceDbValid:false,containsAudioOrVideo:false,disclaimer:"Resultados de comprensión, no medición de exposición"};
+const data={version:"1.0-beta",pre:state.pre,post:state.post,actions:state.events,measurementUnit:"dBFS",calibration:"ninguna",containsAudioOrVideo:false,disclaimer:"Resultados de comprensión, no medición de exposición"};
 const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="echoes-experiencia.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)
 };
 const canvas=$("#particles"),ctx=canvas.getContext("2d");let W=0,H=0;const dots=Array.from({length:78},(_,i)=>({x:(i*.618034)%1,y:(i*.414214)%1,phase:i*1.91,size:1+i%3}));
@@ -244,26 +242,36 @@ const palette=[[86,163,250],[87,224,215],[108,219,134],[245,211,108],[251,153,77
 function color(x){const f=clamp(x,0,1)*5,i=Math.min(4,Math.floor(f)),t=f-i;return palette[i].map((a,n)=>Math.round(a+(palette[i+1][n]-a)*t))}
 function tick(t){
 const dt=Math.min(50,t-last||16);last=t;phase+=dt*.001;
-if(state.mic&&analyser){analyser.getByteTimeDomainData(timeBuf);let s=0;for(let i=0;i<timeBuf.length;i++){const v=(timeBuf[i]-128)/128;s+=v*v}
+if(state.mic&&analyser){analyser.getByteTimeDomainData(timeBuf);let s=0,peak=0;for(let i=0;i<timeBuf.length;i++){const v=(timeBuf[i]-128)/128;s+=v*v;peak=Math.max(peak,Math.abs(v))}
 state.level=20*Math.log10(Math.max(.00001,Math.sqrt(s/timeBuf.length)));
+state.peakDbfs=20*Math.log10(Math.max(.00001,peak));
 if(state.listen&&state.level>-3){stopListen();toast("Entrada saturada: escucha silenciada.")}}
-const target=state.mic?clamp((state.level+67)/51,0,1):.18;
-state.smoothed+=(target-state.smoothed)*.07;
+// ECHOES 1.1: amplify the visual contrast of *native digital* mic changes.
+ // -58 dBFS sits near the cool end; -22 dBFS near the warm end.
+ // No dBFS-to-dBA conversion, safety threshold, or inferred source position.
+ const base=clamp((state.level+58)/36,0,1);
+ const transient=state.mic?clamp((state.peakDbfs-state.level-13)/25,0,1)*.12:0;
+ const target=state.mic?clamp(Math.pow(base,.94)+transient,0,1):.10;
+ // Fast attack (~55 ms), slower release (~380 ms). Approaching a source
+ // should be visually noticeable *when* the captured signal actually rises.
+ const envelopeMs=target>state.smoothed?55:380;
+ const alpha=1-Math.exp(-dt/envelopeMs);
+ state.smoothed+=(target-state.smoothed)*alpha;
 const [r,g,b]=color(state.smoothed);
-$("#ambientTint").style.background="rgba("+r+","+g+","+b+","+(0.05+state.smoothed*.23)+")";
+$("#ambientTint").style.background="rgba("+r+","+g+","+b+","+(0.08+state.smoothed*.36)+")";
 const intervention=state.intervention!=="none";
 const amount=intervention?.10+(.18*state.smoothed):0;
 $("#receiverTint").style.background="rgba(66,193,193,"+amount+")";
 $("#receiverTint").style.clipPath=state.compare?"inset(0 0 0 50%)":"none";
 $("#pin").style.bottom=(3+state.smoothed*94)+"%";
-if(t-lastUI>340){lastUI=t;$("#micStatus").textContent=state.mic?"Captando · "+(state.referenceValid?"nivel relativo":"sin calibración"):"Micrófono sin señal";if($("#liveSignal"))$("#liveSignal").textContent=state.mic?num(state.level)+" dBFS":"sin señal"}
+if(t-lastUI>250){lastUI=t;$("#micStatus").textContent=state.mic?"Captando · nivel digital":"Micrófono sin señal";if($("#liveSignal"))$("#liveSignal").textContent=state.mic?num(state.level)+" dBFS":"sin señal"}
 ctx.clearRect(0,0,W,H);
-const count=state.reduced?18:78;
+const count=state.reduced?Math.round(8+16*state.smoothed):Math.round(14+64*state.smoothed);
 for(let i=0;i<count;i++){const p=dots[i],move=state.reduced?.15:1,px=(p.x*W+Math.sin(phase*move+p.phase)*14),py=(p.y*H+Math.cos(phase*move+p.phase)*18);
-const alpha=(.08+state.smoothed*.42);ctx.beginPath();ctx.arc(px,py,p.size*(.65+state.smoothed*1.35),0,Math.PI*2);ctx.fillStyle="rgba("+r+","+g+","+b+","+alpha+")";ctx.fill()}
+const alpha=(.13+state.smoothed*.57);ctx.beginPath();ctx.arc(px,py,p.size*(.65+state.smoothed*1.8),0,Math.PI*2);ctx.fillStyle="rgba("+r+","+g+","+b+","+alpha+")";ctx.fill()}
 for(let j=0;j<4;j++){const v=(j/4+phase*(state.reduced?.014:.11))%1,rr=(.13+v*.75)*Math.min(W,H);
 ctx.beginPath();ctx.ellipse(W*.52,H*.46,rr,rr*.65,0,0,Math.PI*2);
-ctx.strokeStyle="rgba("+r+","+g+","+b+","+(1-v)*(.09+state.smoothed*.28)+")";ctx.lineWidth=1+state.smoothed*2;ctx.stroke()}
+ctx.strokeStyle="rgba("+r+","+g+","+b+","+(1-v)*(.12+state.smoothed*.46)+")";ctx.lineWidth=1+state.smoothed*2.7;ctx.stroke()}
 requestAnimationFrame(tick)
 }
 requestAnimationFrame(tick);
