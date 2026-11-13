@@ -1,27 +1,36 @@
-# ECHOES — Visualización del ruido con WebAR
+# ECHOES — Experiencia inmersiva WebAR
 
-**ECHOES** es un prototipo académico de una experiencia educativa de realidad aumentada para explorar la exposición al ruido y las medidas preventivas. Funciona en el navegador de un teléfono inteligente, sin sensores externos.
+**ECHOES v0.4** es un prototipo académico que transforma el sonido en una representación visual interactiva y permite explorar, mediante simulaciones, cómo podrían influir el tiempo y diversas medidas preventivas en la exposición acústica.
 
-## Abrir
+**Abrir:** https://brunososal.github.io/echoes-webar/
 
-- **Experiencia:** https://brunososal.github.io/echoes-webar/
-- **Marcador Hiro:** https://brunososal.github.io/echoes-webar/marker.html
+## Experiencia actual
 
-## Cómo probar
+La interfaz ocupa la pantalla disponible y se maneja como una aplicación móvil. Su escenario es el centro de la experiencia; los controles aparecen como cinco widgets flotantes.
 
-1. Abre la experiencia en Safari o Chrome. Para cámara y micrófono utiliza la URL HTTPS de GitHub Pages.
-2. El modo **Demo** es interactivo sin permisos y permite cambiar entre CNC, oficina y calle, ajustar barreras, distancias, duración y protección.
-3. Pulsa **Activar micrófono** para que las ondas respondan al audio del entorno. Es una señal relativa, no dBA.
-4. Para **WebAR**, abre o imprime el marcador Hiro desde una segunda pantalla. Pulsa WebAR, autoriza la cámara y enfoca el marcador.
+- **Escenas:** CNC, oficina y calle, con ilustraciones inmersivas.
+- **Protección:** cabina o puerta, barreras, distancia, y EPP auditivo en CNC.
+- **Tiempo:** exposición hipotética y huella visual relativa.
+- **Efectos:** fichas de pérdida auditiva, acúfenos, fatiga y comunicación.
+- **Audio:** micrófono real para animar ondas o intensidad simulada para demostración.
+
+El botón **Cámara** activa una vista real del entorno y superpone ondas visuales **sin marcador Hiro**. Al volver a **Simulación**, se muestran las escenas ilustradas. No es una localización acústica ni un mapa real de propagación.
+
+## En iPhone
+
+Abre la URL HTTPS directamente en Safari. Para que se vea como una app independiente, puedes usar **Compartir → Añadir a pantalla de inicio** (cuando Safari ofrezca esa opción). No se requiere descargar una app desde la tienda ni adquirir micrófonos.
+
+Permite cámara y micrófono solamente cuando el navegador lo solicite. La visualización y los controles simulados funcionan sin conceder permisos. El audio se procesa localmente: no se graba ni se envía a servidor.
 
 ## Limitaciones
 
-El proyecto no es sonómetro ni dosímetro. No identifica la dirección o la fuente física del ruido. Los efectos, cambios de condiciones, tiempo y controles son representaciones educativas que no estiman un nivel de exposición real ni predicen daño médico. No utiliza grabaciones de audio ni las envía a un servidor. La AR necesita prueba en iPhone real, iluminación y navegador compatible.
+No es un sonómetro ni un dosímetro; no mide dBA con precisión normativa, no diagnostica daño auditivo, no identifica fuentes sonoras y no predice efectos médicos. La "huella" es un **indicador educativo relativo sin unidad física**, no una dosis certificada. El EPP cambia conceptualmente la exposición del receptor, no la emisión ambiental.
 
-## Tecnología
+Las ilustraciones y el modo cámara requieren pruebas en iPhone real para caracterizar rendimiento y permisos. Nunca utilices el celular durante la operación de una máquina o caminando entre vehículos.
 
-HTML, CSS y JavaScript; Canvas 2D; Web Audio API; AR.js y A-Frame cargados sólo en el modo WebAR. Los recursos de AR.js y del marcador Hiro se obtienen de servidores públicos.
+## Historia
 
-## Seguridad
+- v0.3: primer demo con controles y WebAR mediante Hiro.
+- v0.4: rediseño completo a interfaz inmersiva móvil con widgets, tres ilustraciones y cámara sin marcador.
 
-No uses la experiencia mientras operas máquinas o caminas en zonas de tránsito. Las simulaciones se deben probar en un entorno seguro.
+[Marcador Hiro (legado opcional)](https://brunososal.github.io/echoes-webar/marker.html). Ya no es necesario para la experiencia principal.
