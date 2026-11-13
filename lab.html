@@ -146,7 +146,7 @@ function syncBarrier(){
 const score=()=>{let e=base[state.scene]*(state.barrier?.75:1)*distanceFactor()*(state.protect&&state.scene==='cnc'?.57:1);return Math.min(100,Math.round(e*Math.sqrt(state.hours/8)*100))};
 function renderHUD(){
  $('#scenario').textContent=names[state.scene];
- $('#status').textContent=score()+'/100';
+ $('#status').textContent=score()+'/100'+(state.mic?' · MIC':'');
  $('#sourceStatus').textContent=state.placed?'Fuente elegida · '+(distanceFactor()>.96?'cerca':distanceFactor()>.74?'intermedia':'más alejada'):'Anclaje inicial';
  if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}
  $('#taskstatus').textContent=state.placing?'Toca la vista de cámara para colocar la fuente virtual':'Misión de aprendizaje: '+missionCount()+'/5 etapas';
@@ -165,7 +165,9 @@ return group;
 }
 function scenePipeline(){return {name:'echoes-spatial-scene',
 onStart:({canvas})=>{const {scene,camera,renderer}=XR8.Threejs.xrScene();xrScene=scene;scene.add(new THREE.HemisphereLight(0xbbefff,0x234651,2));source=createSoundField();source.position.set(0,0,0);scene.add(source);xrCamera=camera;camera.position.set(0,2,2);wall=makeBarrier();scene.add(wall);XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion});baseDistance=camera.position.distanceTo(source.position);renderHUD();notify('Seguimiento espacial iniciado. Pulsa «Ubicar fuente» para anclarla al lugar que elijas.');$('#target').style.display='none';},
-onUpdate:({processCpuResult})=>{const status=processCpuResult?.reality?.trackingStatus;if(status==='NORMAL')notify('Objeto anclado en el espacio. Puedes rodearlo con cuidado.');else if(status==='LIMITED')notify('Seguimiento limitado: apunta a superficies con textura y buena luz.')}
+onUpdate:({processCpuResult})=>{const status=processCpuResult?.reality?.trackingStatus;
+ if(status&&status!==tracking){tracking=status;if(status==='NORMAL')notify('RA estabilizada. Ubica una fuente virtual o explora sus intervenciones.');else if(status==='LIMITED')notify('Seguimiento limitado: usa buena iluminación y superficies con textura.')}
+}
 }}
 function begin(){if(state.started)return; if(!window.XR8||!window.THREE){$('#bootStatus').textContent='El motor XR todavía no está cargado. Comprueba la conexión y vuelve a intentar.';return}
 try{const mods=[XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule()];if(window.XRExtras?.FullWindowCanvas)mods.push(XRExtras.FullWindowCanvas.pipelineModule());mods.push(scenePipeline());XR8.addCameraPipelineModules(mods);XR8.run({canvas:$('#camerafeed'),allowedDevices:XR8.XrConfig.device().MOBILE});state.started=true;$('#launch').style.display='none';notify('Cámara solicitada. Esperando seguimiento...');}catch(e){$('#bootStatus').textContent='No se pudo iniciar: '+e.message;console.error(e)}}
@@ -249,9 +251,40 @@ function openPanel(kind){
  const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};
 }
 document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.widget)));
-async function toggleMic(){if(state.mic){stream?.getTracks().forEach(t=>t.stop());stream=null;try{await ac?.close()}catch(e){}ac=null;analyser=null;state.mic=false;openPanel('audio');renderHUD();return}try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,autoGainControl:false,noiseSuppression:false}});ac=new(window.AudioContext||window.webkitAudioContext)();analyser=ac.createAnalyser();analyser.fftSize=1024;samples=new Uint8Array(analyser.fftSize);ac.createMediaStreamSource(stream).connect(analyser);state.mic=true;openPanel('audio');renderHUD();notify('Micrófono activo. No se guarda audio.')}catch(e){notify('No se pudo activar el audio: '+e.message)}}
-function tick(t){const dt=Math.min((t-lastTime)/1000||.016,.1);lastTime=t;let x=state.intensity;if(analyser){analyser.getByteTimeDomainData(samples);let s=0;for(const v of samples){const q=(v-128)/128;s+=q*q}x=Math.min(1,Math.pow(Math.sqrt(s/samples.length)*8,.7))}frame+=dt*(.4+x*.7);if(source){const factor=(state.barrier?.72:1)*(state.distance?.75:1);rings.forEach((ring,i)=>{const pulse=(frame+i/6)%1;const scale=.5+pulse*1.15;ring.scale.setScalar(scale*factor);ring.material.opacity=(.45-pulse*.37)*(.5+x*.8)});materialParts.forEach(m=>m.rotation.y=frame*.3);}
-requestAnimationFrame(tick)}
+async function toggleMic(){
+ const returnTo=openedPanel==='scene'?'scene':'scene';
+ if(state.mic){
+  stream?.getTracks().forEach(t=>t.stop());stream=null;try{await ac?.close()}catch(e){}
+  ac=null;analyser=null;samples=null;state.mic=false;openPanel(returnTo);renderHUD();notify('Micrófono desactivado.');return
+ }
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,autoGainControl:false,noiseSuppression:false}});
+  ac=new(window.AudioContext||window.webkitAudioContext)();analyser=ac.createAnalyser();analyser.fftSize=1024;samples=new Uint8Array(analyser.fftSize);
+  ac.createMediaStreamSource(stream).connect(analyser);state.mic=true;openPanel(returnTo);renderHUD();
+  notify('Micrófono activo: sólo anima ondas, no mide presión sonora ni localiza fuentes.')
+ }catch(e){notify('No se pudo activar el audio: '+e.message)}
+}
+function tick(t){
+ const dt=Math.min((t-lastTime)/1000||.016,.1);lastTime=t;
+ let x=state.intensity;
+ if(analyser&&samples){
+   analyser.getByteTimeDomainData(samples);let s=0;
+   for(const v of samples){const q=(v-128)/128;s+=q*q}
+   x=Math.min(1,Math.pow(Math.sqrt(s/samples.length)*8,.7));
+ }
+ frame+=dt*(.4+x*.7);
+ if(source){
+   // EPP and virtual barrier do NOT change emission at the source.
+   rings.forEach((ring,i)=>{
+      const pulse=(frame+i/6)%1;
+      ring.scale.setScalar(.5+pulse*1.15);
+      ring.material.opacity=(.45-pulse*.37)*(.5+x*.8);
+   });
+   materialParts.forEach(m=>m.rotation.y=frame*.3);
+ }
+ if(t-lastHud>450){lastHud=t;if(state.started)renderHUD();if(openedPanel==='time'&&$('#score'))$('#score').textContent=score();}
+ requestAnimationFrame(tick);
+}
 requestAnimationFrame(tick);
 window.addEventListener('pagehide',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());if(state.started&&window.XR8)try{XR8.stop()}catch(e){}});
 </script></body></html>
