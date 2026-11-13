@@ -1,0 +1,19 @@
+{
+  "name": "ECHOES — Lo invisible también deja huella",
+  "short_name": "ECHOES",
+  "description": "Experiencia inmersiva de visualización acústica y prevención.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#06141c",
+  "theme_color": "#06141c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
