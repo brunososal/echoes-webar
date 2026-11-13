@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05151f"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>ECHOES · RA espacial</title>
+<!-- Engine binary license: https://github.com/8thwall/engine/blob/main/LICENSE -->
+<script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@8thwall/landing-page@1/dist/landing-page.js"></script>
+<style>
+:root{--ink:#061923;--mint:#78efda;--glass:rgba(5,24,34,.82);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4ffff;background:#061923}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}button,input{font:inherit}button{cursor:pointer}
+#camerafeed{position:absolute;inset:0;display:block;width:100%;height:100%;background:#0a1e28}
+#shell{position:fixed;inset:0;pointer-events:none;z-index:10;background:linear-gradient(180deg,rgba(3,14,24,.8),transparent 21%,transparent 67%,rgba(2,12,21,.88))}
+#shell button,#shell a,#sheet{pointer-events:auto}
+.top{position:absolute;left:14px;right:14px;top:calc(env(safe-area-inset-top) + 13px);display:flex;gap:9px;align-items:center;justify-content:space-between}
+.back{border:1px solid #4d7e80;text-decoration:none;background:rgba(7,25,35,.8);color:white;padding:11px 12px;border-radius:12px;font-size:12px}
+.logo{margin-right:auto;margin-left:3px;font-size:18px;font-weight:900;letter-spacing:.17em}.logo span{color:var(--mint)}
+.top button,.bottom button,.launch button,.choice{border:1px solid #547d80;border-radius:12px;color:#f0ffff;background:rgba(9,34,44,.82);padding:11px 13px;font-size:12px;font-weight:750;backdrop-filter:blur(12px)}
+.tag{position:absolute;left:15px;right:15px;top:calc(env(safe-area-inset-top) + 80px);text-align:center;font-size:11px;color:#d9fffa;letter-spacing:.04em;text-shadow:0 2px 6px #00151f}
+.target{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);height:44px;width:44px;border:1px solid #d9fffb55;border-radius:50%;opacity:.45}
+.target:after,.target:before{content:"";position:absolute;background:#d9fffb55}.target:after{width:25px;height:1px;left:9px;top:21px}.target:before{height:25px;width:1px;left:21px;top:9px}
+.bottom{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 15px);left:10px;right:10px;max-width:640px;margin:auto}
+.hud{display:flex;gap:9px;justify-content:space-between;align-items:end;margin:0 5px 12px}
+.hud strong{font-size:20px;color:#abffed}.hud small{display:block;color:#bfd5d9;font-size:10px;line-height:1.4}
+.hud .state{background:rgba(4,24,32,.65);border:1px solid #5f9b9955;border-radius:12px;padding:10px}
+.toolbar{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;border:1px solid #6eada855;background:#081e2bf0;border-radius:17px;padding:8px}
+.toolbar button{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;padding:10px 4px;min-height:55px;border:0;background:none;font-size:10px}
+.toolbar .glyph{font-size:22px}
+#launch{position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,#164b53,#05141e 70%);display:flex;align-items:center;justify-content:center;padding:22px;z-index:12;pointer-events:auto}
+.launch{max-width:370px;text-align:center}.launch small{letter-spacing:.18em;font-size:11px;color:#80ddca;font-weight:800}.launch h1{font-size:clamp(35px,10vw,55px);line-height:1.02;margin:12px 0;letter-spacing:-.06em}.launch p{color:#b1cdd1;line-height:1.55;font-size:14px}.launch button{border-color:#72ebd8;background:#087b7b;font-size:15px;padding:15px 25px;width:100%;margin:14px 0}.launch a{color:#97f6e6;font-size:13px}.note{font-size:12px;color:#bbd4d6;text-align:left;background:#10303b;border-left:3px solid #61d8c6;padding:12px;line-height:1.55}
+#message{position:absolute;top:calc(env(safe-area-inset-top) + 112px);left:15px;right:15px;color:#b9f9e9;text-align:center;font-size:11px;line-height:1.4;text-shadow:0 2px 4px #001}
+#sheet{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(135deg,#153b45,#051b29);border:1px solid #6dd8c977;border-radius:24px 24px 0 0;padding:20px 19px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(110%);transition:transform .24s;max-height:72vh;overflow:auto;z-index:14;pointer-events:auto}
+#sheet.open{transform:translateY(0)}#sheet h2{margin:0 0 13px;font-size:22px;letter-spacing:-.03em}#sheet p{font-size:12px;line-height:1.55;color:#b8d5d7}#sheet label{display:block;font-size:11px;color:#93d2cf;text-transform:uppercase;letter-spacing:.12em;margin:18px 0 9px;font-weight:750}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choice{min-height:51px;text-align:left}.choice.on{background:#0f7776;border-color:#77fce4}input[type=range]{width:100%;accent-color:#66f0d8}#close{float:right;color:#eafff8;border:0;background:#30515a;border-radius:50%;height:32px;width:32px;font-size:20px}
+#shade{position:absolute;inset:0;background:#0006;z-index:13;display:none;pointer-events:auto}#shade.open{display:block}
+#info{margin-top:14px;border-left:3px solid #69decf;background:#17414a66;padding:12px;border-radius:7px;font-size:12px;line-height:1.5}
+#status{font-variant-numeric:tabular-nums}
+
+.toolbar{grid-template-columns:repeat(5,1fr)}
+.top{flex-wrap:wrap}.top .back{flex:none}
+.top .locate{background:#0b7b77;border-color:#56dccb;color:#fff}
+.top .locate.active{background:#d2fff4;color:#0a3337}
+#target{display:none;z-index:11;opacity:.86;width:64px;height:64px;border:2px solid #a4ffe8;box-shadow:0 0 0 18px #67edcf12}
+#target:before{height:35px;top:13px;left:30px;background:#a4ffe8}
+#target:after{width:35px;top:30px;left:13px;background:#a4ffe8}
+#taskstatus{position:absolute;top:calc(env(safe-area-inset-top) + 157px);left:20px;right:20px;z-index:10;text-align:center;color:#ddfbef;font-size:11px;text-shadow:0 1px 4px #001c22;background:#031d2ca8;padding:8px;border-radius:11px;pointer-events:none}
+.challenge-item{display:flex;gap:10px;margin-bottom:11px;align-items:flex-start;font-size:12px;line-height:1.45;color:#d8eeec}
+.challenge-dot{width:23px;height:23px;border:1px solid #73cbbb;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:800;color:#d9f8ee}
+.challenge-dot.done{background:#1c9084;border-color:#73f9d5;color:#fff}
+.progress-track{height:8px;border-radius:8px;overflow:hidden;background:#264b54;margin:12px 0 20px}
+.progress-track>div{height:100%;background:linear-gradient(90deg,#24b9a8,#91ffd8);transition:width .2s}
+.facts{padding:10px 11px;margin-bottom:9px;border:1px solid #5b898466;border-radius:10px;background:#1434409c}
+.facts b{font-size:13px}.facts p{margin:7px 0 0}
+.quiz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.choice.correct{background:#14796b;border-color:#8cffd8}.choice.wrong{background:#644545;border-color:#d49e92}
+#sourceStatus{color:#8af8dd!important}
+@media(max-width:390px){.top{gap:5px}.top button,.top a{padding:9px 8px;font-size:10px}.logo{font-size:14px}.toolbar button{font-size:9px;padding:7px 1px}}
+
+.audioBar{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:12px 0 7px}.audioBar strong{font-size:27px;font-variant-numeric:tabular-nums;color:#a3ffe3}
+.audioMeter{height:11px;background:#193a47;border:1px solid #437981;border-radius:8px;overflow:hidden}.audioMeter>div{height:100%;background:linear-gradient(90deg,#55e4cc,#f4d27c);width:0;transition:width .13s}
+.audioHelp{font-size:11px;line-height:1.55;color:#c6dcd9;background:#10343d;border:1px solid #315b62;border-radius:12px;padding:11px;margin-top:11px}
+.audioActions{display:flex;gap:9px;margin:12px 0}.audioActions button{flex:1;text-align:center}
+.audioWarn{border:1px solid #dcab6990;background:#4b34258c;color:#fff0d7;padding:12px;border-radius:12px;font-size:12px;line-height:1.5}
+.audioConfirm{display:flex;gap:10px;align-items:flex-start;margin:14px 0;font-size:12px;line-height:1.45;color:#edfaee}
+.audioConfirm input{width:18px;height:18px;accent-color:#5edebd;flex:none;margin:2px}
+.audioSmall{font-size:11px;color:#a0c4c3;line-height:1.5}
+.audioPreset{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#sheet input[type="number"]{background:#0b2e38;color:#effffb;border:1px solid #528081;padding:11px;width:90px;border-radius:9px}
+.audio-safe{color:#a5f3df}.audio-off{color:#ffcfab}
+.toolbar{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media(max-width:390px){.toolbar button{font-size:8px}.toolbar .glyph{font-size:19px}}
+
+#quickMute{position:absolute;right:15px;top:calc(env(safe-area-inset-top) + 126px);z-index:12;border:1px solid #ffc2a0;background:#853f34;color:#fff;border-radius:25px;padding:11px 15px;font-weight:850;font-size:12px;box-shadow:0 5px 17px #0008;pointer-events:auto}
+#quickMute[hidden]{display:none!important}
+</style>
+</head><body>
+<canvas id="camerafeed"></canvas>
+<div id="shell">
+<div class="top"><a class="back" href="./">← Simulación</a><div class="logo">ECHOES<span>.</span></div><button id="placeSource" class="locate">⊕ Ubicar fuente</button><button id="recenter">◎ Reiniciar</button></div>
+<div class="tag">RA ESPACIAL · FUENTE ELEGIDA POR TI · NO ACÚSTICA MEDIDA</div><div id="taskstatus">Coloca una fuente virtual y experimenta con controles preventivos.</div><button id="quickMute" hidden>■ Silenciar audio</button>
+<div id="message" role="status">Inicia la cámara y mueve lentamente el teléfono para establecer el seguimiento.</div>
+<div class="target" id="target"></div>
+<div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>HUELLA SIMULADA · NO dBA</small><strong id="status">SIMULADA</strong><small id="micMeterStatus">MICRÓFONO APAGADO</small><small id="sourceStatus">Referencia no elegida</small></div></div>
+<div class="toolbar"><button data-widget="scene"><span class="glyph">▦</span>Entorno</button><button data-widget="control"><span class="glyph">♢</span>Control</button><button data-widget="time"><span class="glyph">◷</span>Tiempo</button><button data-widget="effects"><span class="glyph">◉</span>Efectos</button><button data-widget="audio"><span class="glyph">♫</span>Escuchar</button><button data-widget="mission"><span class="glyph">✓</span>Misión</button></div></div>
+<div id="shade"></div>
+<div id="sheet"><button id="close" aria-label="Cerrar">×</button><h2 id="sheetTitle"></h2><div id="sheetBody"></div></div>
+<div id="launch"><div class="launch"><small>ECHOES / LABORATORIO ESPACIAL / V0.8</small><h1>El ruido deja <span style="color:#76f4d7">huella.</span></h1><p>Coloca un campo acústico virtual en tu entorno. Al moverte, las ondas deberán permanecer en su posición tridimensional.</p><div class="note"><b>Laboratorio espacial:</b> selecciona dónde simular una fuente, coloca una barrera virtual y observa qué pasa con la representación desde distintas posiciones. Es una metáfora educativa; no hay mapa acústico real. No operes máquinas ni camines por el tráfico durante la prueba.</div><button id="start">Iniciar RA espacial</button><div id="bootStatus" style="color:#9cd7d5;font-size:12px;margin-bottom:15px">Requiere Safari, permiso de cámara e internet.</div><a href="./">Volver a simulación</a></div></div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js';
+window.THREE=THREE;
+const $=(s)=>document.querySelector(s);
+const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false,listen:false,headphones:false,preset:'natural',monitorVolume:15,refDb:49,calOffset:93.5,calOrigin:'provisional',digitalDb:-100,relativeLevel:0,inputLabel:'sin identificar'};
+let source=null, xrScene=null, xrCamera=null, wall=null, floorGuard=null, stream=null,ac=null,analyser=null,samples=null,materialParts=[],rings=[],lastTime=0,frame=0,baseDistance=null,lastHud=0,tracking='INITIALIZING',micSource=null,filterHigh=null,filterLow=null,monitorGain=null,limiter=null,audioPeak=0,lastAudioMeter=0;
+const base={cnc:.9,office:.46,street:.7};
+const names={cnc:'CNC',office:'Oficina',street:'Calle'};
+const notify=(msg)=>{$('#message').textContent=msg};
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const distanceFactor=()=>{
+ if(!state.placed||!source||!xrCamera||!baseDistance)return state.distance?.65:1;
+ const d=xrCamera.position.distanceTo(source.position);
+ return clamp(baseDistance/Math.max(.35,d),.6,1.2);
+};
+let openedPanel=null;
+const sessionStart=performance.now();
+const events=[];
+function logEvent(type,detail){
+ // Only actions and elapsed milliseconds: no camera frames, audio or physical positions.
+ events.push({elapsedMs:Math.round(performance.now()-sessionStart),type,detail:String(detail??'')});
+}
+function exportSession(){
+ const summary={prototype:'ECHOES',version:'0.8-reference-calibration-beta',purpose:'prueba educativa de interacción',anonymous:true,
+ scenario:state.scene,stepsCompleted:missionCount(),quizAnswer:state.answered||'sin responder',
+ currentDidacticIndex:score(),events:[...events],
+ note:'No son datos de exposición acústica ni resultados clínicos. Sin imágenes, audio o coordenadas.'};
+ const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
+ const link=document.createElement('a'),url=URL.createObjectURL(blob);
+ link.href=url;link.download='echoes-sesion-educativa.json';link.style.display='none';document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),10000);
+ notify('Bitácora descargada: acciones, tiempos y respuestas; sin audio ni video.');
+}
+
+function missionFlags(){return [state.placed,state.barrier,state.protect&&state.scene==='cnc',state.movedTime,state.answered==='receptor'];}
+function missionCount(){return missionFlags().filter(Boolean).length;}
+function placeMode(on){
+ state.placing=on;
+ $('#placeSource').classList.toggle('active',on);
+ $('#placeSource').textContent=on?'✓ Toca el entorno':'⊕ Ubicar fuente';
+ $('#target').style.display=on?'block':'none';
+ $('#taskstatus').textContent=on?'Toca la imagen de cámara donde quieres colocar la fuente virtual.':'Fuente elegida manualmente · controles de exposición ilustrativos';
+ if(on)notify('Apunta a una superficie con detalles y toca la imagen donde ubicarás la fuente.');
+}
+function placeSource(event){
+ if(!state.started||!state.placing||!source||!xrCamera)return;
+ const canvas=$('#camerafeed'),b=canvas.getBoundingClientRect();
+ const x=(event.clientX-b.left)/b.width*2-1, y=-(event.clientY-b.top)/b.height*2+1;
+ xrCamera.updateMatrixWorld(true);
+ const ray=new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(x,y),xrCamera);
+ const ground=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+ const hit=new THREE.Vector3();
+ let good=ray.ray.intersectPlane(ground,hit);
+ const length=good?hit.distanceTo(xrCamera.position):0;
+ if(!good||length<.45||length>7){
+  const direction=new THREE.Vector3();xrCamera.getWorldDirection(direction);
+  direction.y=0; if(direction.length()<.05)direction.set(0,0,-1);
+  direction.normalize();
+  hit.copy(xrCamera.position).addScaledVector(direction,1.65);hit.y=0;
+ }
+ source.position.set(hit.x,0,hit.z);
+ baseDistance=Math.max(.35,xrCamera.position.distanceTo(source.position));
+ state.placed=true;logEvent('colocar_fuente','colocacion manual, sin coordenadas');placeMode(false);syncBarrier();renderHUD();
+ notify('Fuente virtual colocada. La posición no se detectó por sonido ni se midió acústicamente.');
+ if(openedPanel==='mission')openPanel('mission');
+}
+$('#placeSource').addEventListener('click',()=>{if(!state.started){notify('Inicia la RA primero.');return}placeMode(!state.placing)});
+$('#camerafeed').addEventListener('pointerdown',e=>{if(state.placing)placeSource(e)});
+function makeBarrier(){
+ const group=new THREE.Group();
+ const board=new THREE.Mesh(new THREE.PlaneGeometry(.86,.87),new THREE.MeshBasicMaterial({color:0x64f9d1,transparent:true,opacity:.29,side:THREE.DoubleSide,depthWrite:false}));
+ board.position.y=.48;group.add(board);
+ const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(.86,.87)),new THREE.LineBasicMaterial({color:0xd9fff2,transparent:true,opacity:.85}));
+ outline.position.y=.48;group.add(outline);
+ const foot=new THREE.Mesh(new THREE.BoxGeometry(1,.035,.08),new THREE.MeshBasicMaterial({color:0x75bcb4,transparent:true,opacity:.82}));foot.position.y=.035;group.add(foot);
+ const line=new THREE.Mesh(new THREE.PlaneGeometry(.9,.12),new THREE.MeshBasicMaterial({color:0x5ee0bc,opacity:.18,transparent:true,side:THREE.DoubleSide}));
+ line.rotation.x=-Math.PI/2;line.position.set(0,.02,.11);group.add(line);
+ group.visible=false;return group;
+}
+function syncBarrier(){
+ if(!wall||!source||!xrCamera)return;
+ wall.visible=state.barrier;
+ if(!state.barrier)return;
+ let cam=new THREE.Vector3();xrCamera.getWorldPosition(cam);
+ const toCam=cam.clone().sub(source.position);toCam.y=0;
+ if(toCam.length()<.1)toCam.set(0,0,1);
+ toCam.normalize();
+ wall.position.set(source.position.x+toCam.x*.88,0,source.position.z+toCam.z*.88);
+ wall.rotation.y=Math.atan2(toCam.x,toCam.z);
+}
+
+const score=()=>{let e=base[state.scene]*(state.barrier?.75:1)*distanceFactor()*(state.protect&&state.scene==='cnc'?.57:1);return Math.min(100,Math.round(e*Math.sqrt(state.hours/8)*100))};
+function renderHUD(){
+ $('#scenario').textContent=names[state.scene];
+ $('#status').textContent=score()+'/100'+(state.listen?' · AUDIO':state.mic?' · MIC':'');$('#quickMute').hidden=!state.listen;$('#micMeterStatus').textContent=state.mic?(state.calOffset===null?state.digitalDb.toFixed(0)+' dBFS':(state.digitalDb+state.calOffset).toFixed(0)+' dB ref. aprox.'):'MICRÓFONO APAGADO';
+ $('#sourceStatus').textContent=state.placed?'Fuente elegida · '+(distanceFactor()>.96?'cerca':distanceFactor()>.74?'intermedia':'más alejada'):'Anclaje inicial';
+ if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}
+ $('#taskstatus').textContent=state.placing?'Toca la vista de cámara para colocar la fuente virtual':'Misión de aprendizaje: '+missionCount()+'/5 etapas';
+}
+function createSoundField(){
+const group=new THREE.Group();
+const glass=new THREE.MeshPhysicalMaterial({color:0x3adccb,metalness:.12,roughness:.28,transmission:.08,transparent:true,opacity:.67,side:THREE.DoubleSide});
+const emitter=new THREE.Mesh(new THREE.IcosahedronGeometry(.18,1),glass);
+emitter.position.y=.36;group.add(emitter); materialParts.push(emitter);
+const pole=new THREE.Mesh(new THREE.CylinderGeometry(.028,.055,.45,8),new THREE.MeshBasicMaterial({color:0x4caaa7,transparent:true,opacity:.54}));pole.position.y=.22;group.add(pole);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(.4,48),new THREE.MeshBasicMaterial({color:0x2bb7a8,transparent:true,opacity:.09,side:THREE.DoubleSide,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.position.y=.02;group.add(floor);
+for(let i=0;i<6;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.45+i*.18,.007,6,100),new THREE.MeshBasicMaterial({color:i%2?0x70efff:0x58e6bd,transparent:true,opacity:.27,depthWrite:false}));ring.rotation.x=Math.PI/2.0;ring.position.y=.10+i*.06;group.add(ring);rings.push(ring)}
+for(let i=0;i<52;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.012+(i%5)*.002,5,5),new THREE.MeshBasicMaterial({color:0xb7fff1,transparent:true,opacity:.30,depthWrite:false}));const a=i*2.39996,r=.35+(i%20)*.045;m.position.set(Math.cos(a)*r,.13+(i%11)*.05,Math.sin(a)*r);group.add(m)}
+const accent=new THREE.Mesh(new THREE.RingGeometry(.31,.34,56),new THREE.MeshBasicMaterial({color:0xffc884,side:THREE.DoubleSide,transparent:true,opacity:.42}));accent.rotation.x=-Math.PI/2;accent.position.y=.03;group.add(accent);
+return group;
+}
+function scenePipeline(){return {name:'echoes-spatial-scene',
+onStart:({canvas})=>{const {scene,camera,renderer}=XR8.Threejs.xrScene();xrScene=scene;scene.add(new THREE.HemisphereLight(0xbbefff,0x234651,2));source=createSoundField();source.position.set(0,0,0);scene.add(source);xrCamera=camera;camera.position.set(0,2,2);wall=makeBarrier();scene.add(wall);XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion});baseDistance=camera.position.distanceTo(source.position);renderHUD();notify('Seguimiento espacial iniciado. Pulsa «Ubicar fuente» para anclarla al lugar que elijas.');$('#target').style.display='none';},
+onUpdate:({processCpuResult})=>{const status=processCpuResult?.reality?.trackingStatus;
+ if(status&&status!==tracking){tracking=status;if(status==='NORMAL')notify('RA estabilizada. Ubica una fuente virtual o explora sus intervenciones.');else if(status==='LIMITED')notify('Seguimiento limitado: usa buena iluminación y superficies con textura.')}
+}
+}}
+function begin(){if(state.started)return; if(!window.XR8||!window.THREE){$('#bootStatus').textContent='El motor XR todavía no está cargado. Comprueba la conexión y vuelve a intentar.';return}
+try{const mods=[XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule()];if(window.XRExtras?.FullWindowCanvas)mods.push(XRExtras.FullWindowCanvas.pipelineModule());mods.push(scenePipeline());XR8.addCameraPipelineModules(mods);XR8.run({canvas:$('#camerafeed'),allowedDevices:XR8.XrConfig.device().MOBILE});state.started=true;$('#launch').style.display='none';notify('Cámara solicitada. Esperando seguimiento...');}catch(e){$('#bootStatus').textContent='No se pudo iniciar: '+e.message;console.error(e)}}
+$('#start').addEventListener('click',begin);
+window.addEventListener('xrloaded',()=>{$('#bootStatus').textContent='Motor espacial listo para iniciar.'});
+window.addEventListener('error',e=>{if(!state.started)$('#bootStatus').textContent='Error de carga: '+(e.message||'revisa conexión')});
+$('#recenter').addEventListener('click',()=>{if(!state.started)return;try{XR8.XrController.recenter();state.placed=false;state.placing=false;state.barrier=false;state.answered=null;state.movedTime=false;if(source)source.position.set(0,0,0);if(wall)wall.visible=false;placeMode(false);renderHUD();notify('Seguimiento reiniciado. Puedes volver a ubicar la fuente.')}catch(e){notify('No se pudo reiniciar: '+e.message)}});
+function closePanel(){openedPanel=null;$('#sheet').classList.remove('open');$('#shade').classList.remove('open')}
+$('#close').addEventListener('click',closePanel);$('#shade').addEventListener('click',closePanel);
+function choice(label,key,val,selected){return '<button class="choice '+(selected?'on':'')+'" data-key="'+key+'" data-val="'+val+'">'+label+'</button>'}
+function openPanel(kind){
+ openedPanel=kind;
+ const titles={scene:'Escenarios y audio',control:'Intervenciones preventivas',time:'Tiempo y exposición',effects:'Consecuencias posibles',mission:'Misión: intervén el ruido',audio:'Sonido reactivo'};
+ $('#sheetTitle').textContent=titles[kind]||'Opciones';
+ let body='';
+ if(kind==='scene'){
+ body='<p>Elige un contexto. La fuente se coloca manualmente y el micrófono no determina su posición.</p><div class="grid">'+
+ choice('🏭 Taller CNC','scene','cnc',state.scene==='cnc')+
+ choice('🏢 Oficina','scene','office',state.scene==='office')+
+ choice('🚙 Calle','scene','street',state.scene==='street')+
+ '</div><label>Visualización reactiva al sonido</label><button class="choice '+(state.mic?'on':'')+'" id="micBtn">'+(state.mic?'■ Apagar micrófono':'◉ Activar micrófono')+'</button><p>Las ondas responden a la intensidad relativa captada, pero nunca son un mapa de ruido real.</p>';
+ }
+ if(kind==='control'){
+ body='<p>Las medidas no están calibradas. Compara los principios: reducir emisión o propagación no es igual que proteger el oído.</p>'+
+ '<label>Propagación</label><div class="grid">'+choice('Sin barrera','barrier','off',!state.barrier)+choice('Poner barrera 3D','barrier','on',state.barrier)+'</div>'+
+ '<label>Separación espacial</label><p>Camina despacio alrededor del objeto en un lugar seguro: el sistema utiliza la posición relativa para cambiar un índice <strong>didáctico</strong>. No es una medición de distancia ni una atenuación acústica validada.</p>'+
+ (state.scene==='cnc'?'<label>Protección del oído</label><div class="grid">'+choice('Sin protección','protect','off',!state.protect)+choice('Con EPP ajustado','protect','on',state.protect)+'</div>':'')+
+ '<div id="info">La barrera virtual se ubica entre la fuente y la posición del teléfono cuando la activas. Los anillos de la fuente continúan visibles aunque uses EPP: el ruido ambiental no desaparece.</div>';
+ }
+ if(kind==='time'){
+ body='<p>Cambiar el tiempo debe afectar a la exposición ilustrativa y no a la emisión de la fuente.</p>'+
+ '<label>Duración de ejemplo: <strong id="hVal">'+state.hours+'</strong> horas</label>'+
+ '<input id="hInput" type="range" min=".5" max="8" step=".5" value="'+state.hours+'">'+
+ '<div id="info">Huella relativa de aprendizaje: <strong id="score">'+score()+'</strong> / 100. Sin unidades, sin equivalencia con dosis real.</div>'+
+ '<p>Compara primero 8 horas y luego 1 hora. ¿Qué cambia aunque la máquina continúe emitiendo ruido?</p>';
+ }
+ if(kind==='effects'){
+ const facts=[
+ ['👂 Pérdida auditiva','La exposición repetida a niveles elevados puede producir daño auditivo permanente. El valor mostrado aquí no estima ese riesgo para ti.'],
+ ['〰 Acúfenos','Zumbidos o pitidos que pueden asociarse a exposición al ruido. No se puede diagnosticar su aparición con este prototipo.'],
+ ['🧠 Fatiga y atención','En determinadas condiciones, el ruido puede interferir con la concentración, aumentar molestia y contribuir a fatiga.'],
+ ['💬 Comunicación','El ruido puede enmascarar instrucciones y alarmas. Reducirlo también ayuda a reconocer señales importantes.']
+ ];
+ body='<p>Estos efectos tienen respaldo general, pero <strong>ninguno se predice desde el micrófono</strong>. La simulación sólo permite comprender relaciones.</p>'+
+ facts.map(([title,desc])=>'<div class="facts"><b>'+title+'</b><p>'+desc+'</p></div>').join('')+
+ '<div id="info">No se presentan mareos ni dolores de cabeza como consecuencia universal de una duración e intensidad determinada.</div>';
+ }
+ if(kind==='audio'){
+ body='<p>Escucha la señal captada por el micrófono con procesamiento didáctico. La escucha está <b>apagada de forma predeterminada</b>.</p>'+
+ '<div class="audioBar"><span class="audioSmall">Nivel referenciado (aprox.)</span><strong id="audioReadout">'+(state.mic?(state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(1)+' dB ref.'):'—')+'</strong></div>'+ '<p class="audioSmall">Valor digital sin calibrar: <strong id="rawReadout">'+(state.mic?state.digitalDb.toFixed(1)+' dBFS':'—')+'</strong></p>'+
+ '<div class="audioMeter"><div id="audioMeterFill" style="width:'+Math.round(state.relativeLevel*100)+'%"></div></div>'+
+ '<p id="audioStatusText" class="audioSmall">'+(state.mic?'Micrófono captando · escucha '+(state.listen?'activada':'desactivada'):'Micrófono desactivado · sin grabar audio')+'</p>'+
+ '<div class="audioActions"><button class="choice '+(state.mic?'on':'')+'" id="micBtn">'+(state.mic?'■ Apagar micrófono':'◉ Activar micrófono')+'</button><button class="choice '+(state.listen?'on':'')+'" id="monitorBtn">'+(state.listen?'■ Detener escucha':'♫ Escuchar en audífonos')+'</button></div>'+
+ '<div class="audioWarn"><b>Precaución auditiva.</b> Conecta audífonos y baja el volumen del iPhone antes de activar la escucha. NO lo utilices para amplificar ruido industrial, ni confíes en estos filtros como protección. El audio en altavoces puede generar realimentación o pitidos fuertes.</div>'+
+ '<div class="audioConfirm"><input type="checkbox" id="headphonesConfirm" '+(state.headphones?'checked':'')+'><span>Confirmo que tengo audífonos conectados y que el volumen del iPhone está bajo. La página no puede comprobar la salida de audio automáticamente.</span></div>'+
+ '<label>Procesamiento del sonido que escuchas</label>'+
+ '<div class="audioPreset">'+
+ choice('Original reducido','preset','natural',state.preset==='natural')+
+ choice('Atenuación + graves','preset','soft',state.preset==='soft')+
+ choice('Voz destacada','preset','voice',state.preset==='voice')+
+ choice('Sonido apagado','preset','muffled',state.preset==='muffled')+
+ '</div>'+
+ '<label>Volumen de escucha <strong id="volValue">'+state.monitorVolume+'%</strong> del límite interno</label>'+
+ '<input id="volInput" type="range" min="0" max="100" step="5" value="'+state.monitorVolume+'">'+
+ '<p class="audioSmall">La salida está limitada y comienza muy baja. Ajusta también el volumen del sistema; el indicador no representa el nivel real en el oído.</p>'+
+ '<label>Referencia acústica de un punto</label>'+ '<div class="audioHelp"><b>'+(state.calOffset===null?'Sin referencia acústica activa.':state.calOrigin==='manual'?'Referencia modificada manualmente.':'Referencia inicial: 49 dB frente a −44.5 dBFS.')+'</b> '+(state.calOffset===null?'Actualmente sólo se muestra dBFS.':'Corrección activa: '+(state.calOffset>=0?'+':'')+state.calOffset.toFixed(1)+' dB sobre la señal digital. <b>Estimación didáctica, no dBA validado.</b>')+' Para recalibrar, compara en un ambiente estable durante 15–30 segundos con el sonómetro y emplea la referencia obtenida. Entrada detectada: <b id="inputDevice"></b>.</div>'+
+ '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap"><input type="number" id="refInput" min="40" max="110" step=".5" placeholder="p. ej. 49" value="'+(state.refDb===null?'':state.refDb)+'" aria-label="Nivel de referencia en dB"><button class="choice" id="calibrateBtn">Recalibrar</button><button class="choice" id="resetCalBtn">Mostrar dBFS</button></div>'+
+ '<p class="audioSmall">Con esta referencia se muestran dB acústicos orientativos, <b>no dBA medidos</b>. Sin ella, dBFS. Si cambias de micrófono, conectas AirPods o varía la ganancia automática, se debe volver a calibrar. Este algoritmo no aplica ponderación A ni cumple una norma de sonometría.</p>'+
+ '<div class="audioHelp">Con AirPods puedes activar ANC desde los propios audífonos y comparar sensaciones. <b>ECHOES no controla ANC</b> y los filtros web no equivalen a una atenuación real de EPP. Si hay retraso o pitidos, detén la escucha.</div>';
+ }
+ if(kind==='mission'){
+ const flags=missionFlags(),done=missionCount(),todo=[
+ 'Coloca una fuente virtual con «Ubicar fuente» y toca la imagen.',
+ 'Activa una barrera entre la fuente y el observador.',
+ 'En el escenario CNC, activa el EPP y observa que las ondas siguen.',
+ 'Cambia el tiempo para comparar la huella didáctica.',
+ 'Responde: ¿qué hace el EPP auditivo correctamente ajustado?'
+ ];
+ body='<p>Explora las decisiones preventivas. Este recorrido genera evidencia sobre <strong>comprensión de conceptos</strong>, no sobre daño real.</p>'+
+ '<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#beefdf">PROGRESO <strong>'+done+' / 5</strong></div>'+
+ '<div class="progress-track"><div style="width:'+(done*20)+'%"></div></div>'+
+ todo.map((item,i)=>'<div class="challenge-item"><span class="challenge-dot '+(flags[i]?'done':'')+'">'+(flags[i]?'✓':(i+1))+'</span><div>'+item+'</div></div>').join('')+
+ '<label>Comprobación de aprendizaje</label>'+
+ '<div class="quiz"><button class="choice '+(state.answered==='source'?'wrong':'')+'" data-answer="source">Silencia la máquina y el taller</button>'+
+ '<button class="choice '+(state.answered==='receptor'?'correct':'')+'" data-answer="receptor">Reduce el sonido que llega al oído</button></div>'+
+ '<div id="info">'+(state.answered==='source'?'No: el EPP no reduce la emisión de la máquina. Prueba la segunda respuesta.':state.answered==='receptor'?'Correcto: protege al receptor, no silencia la fuente.':done===5?'¡Misión completada!':'Continúa con los controles y vuelve aquí para revisar tus decisiones.')+'</div>'+
+ '<p style="margin-top:16px"><button class="choice" id="missionPlace">⊕ Ubicar / cambiar fuente virtual</button></p>'+'<p><button class="choice" id="exportSession">↓ Descargar bitácora de la sesión (JSON)</button></p>'+'<p>No se almacena ni envía información automáticamente. El archivo registra decisiones y tiempos relativos, pero no imágenes, sonido ni coordenadas.</p>';
+ }
+ $('#sheetBody').innerHTML=body;if($('#inputDevice'))$('#inputDevice').textContent=state.inputLabel;$('#shade').classList.add('open');$('#sheet').classList.add('open');
+ document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{
+   const k=b.dataset.key,v=b.dataset.val;
+   if(k==='scene'){state.scene=v;state.protect=false;logEvent('escenario',v);}
+   else if(k==='barrier'){state.barrier=v==='on';logEvent('barrera',v);}
+   else if(k==='distance'){state.distance=v==='on';logEvent('distancia_didactica',v);}
+   else if(k==='protect'){state.protect=v==='on';logEvent('epp',v);}
+   else if(k==='preset'){state.preset=v;logEvent('filtro_audio',v);}
+   updateAudioProcessing();syncBarrier();renderHUD();openPanel(kind);
+ });
+ const range=$('#hInput');if(range)range.oninput=e=>{
+   state.hours=Number(e.target.value);state.movedTime=true;logEvent('duracion_horas',state.hours);
+   $('#hVal').textContent=state.hours;$('#score').textContent=score();renderHUD();
+ };
+ const micBtn=$('#micBtn');if(micBtn)micBtn.onclick=toggleMic;
+ const h=$('#headphonesConfirm');if(h)h.onchange=()=>{state.headphones=h.checked;if(!state.headphones&&state.listen){stopMonitor();openPanel('audio')}};
+ const monitor=$('#monitorBtn');if(monitor)monitor.onclick=toggleMonitor;
+ const vol=$('#volInput');if(vol)vol.oninput=()=>{state.monitorVolume=Number(vol.value);const label=$('#volValue');if(label)label.textContent=vol.value+'%';updateAudioProcessing()};
+ const cal=$('#calibrateBtn');if(cal)cal.onclick=()=>{
+  const n=Number($('#refInput')?.value);
+  if(!state.mic||state.digitalDb < -78||!Number.isFinite(n)||n<40||n>110){notify('Activa el micrófono e introduce una referencia externa de 40 a 110 dB.');return}
+  state.refDb=n;state.calOffset=n-state.digitalDb;state.calOrigin='manual';logEvent('calibracion_referencia','un punto externo, no normativa');notify('Referencia ajustada en este ambiente; lectura sólo orientativa.');openPanel('audio');
+ };
+ const resetCal=$('#resetCalBtn');if(resetCal)resetCal.onclick=()=>{state.calOffset=null;state.refDb=null;state.calOrigin='sin referencia';openPanel('audio')};
+
+ document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{state.answered=b.dataset.answer;logEvent('pregunta_epp',state.answered);renderHUD();openPanel('mission')});
+ const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};const exp=$('#exportSession');if(exp)exp.onclick=exportSession;
+}
+document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.widget)));
+// Web Audio signal flow:
+// Microphone -> analyser (visual metering only)
+//            -> high-pass -> low-pass -> strong compressor -> very-low-gain -> system audio output.
+// The output gain starts at exactly zero and requires an explicit headphone confirmation.
+function updateAudioProcessing(){
+ if(!ac||!filterHigh||!filterLow||!monitorGain)return;
+ const now=ac.currentTime;
+ const modes={
+  natural:{hp:70,lp:12000,level:1},
+  soft:{hp:85,lp:2500,level:.68},
+  voice:{hp:320,lp:3500,level:.55},
+  muffled:{hp:80,lp:650,level:.39}
+ };
+ const mode=modes[state.preset]||modes.natural;
+ filterHigh.frequency.setTargetAtTime(mode.hp,now,.04);
+ filterLow.frequency.setTargetAtTime(mode.lp,now,.04);
+ const controls=(state.barrier?.63:1)*(state.protect&&state.scene==='cnc'?.5:1)*Math.min(1,distanceFactor());
+ // 0.12 maximum digital gain; low monitor default 0.018 even on 'Original'.
+ // No hardware sound-pressure limit is guaranteed by this software value.
+ const requested=state.listen&&state.headphones ? .12*(state.monitorVolume/100)*mode.level*controls : 0;
+ monitorGain.gain.setTargetAtTime(requested,now,.06);
+}
+$('#quickMute').addEventListener('click',()=>{stopMonitor();if(openedPanel==='audio')openPanel('audio')});
+function stopMonitor(){
+ if(!state.listen)return;
+ if(monitorGain&&ac){try{monitorGain.gain.cancelScheduledValues(ac.currentTime);monitorGain.gain.setValueAtTime(0,ac.currentTime)}catch(_){monitorGain.gain.value=0}}
+ state.listen=false;
+ updateAudioProcessing();
+ logEvent('escucha','detenida');
+ notify('Escucha desactivada. Micrófono puede seguir animando las ondas.');
+}
+async function toggleMonitor(){
+ if(state.listen){stopMonitor();if(openedPanel==='audio')openPanel('audio');return}
+ if(!state.headphones){notify('Confirma primero que tienes audífonos conectados y el volumen del iPhone bajo.');return}
+ if(!state.mic||!ac||!monitorGain){notify('Primero activa el micrófono y después inicia la escucha.');return}
+ try {
+  await ac.resume();
+  if(ac.state!=='running'){notify('Safari suspendió la salida de audio. Vuelve a pulsar «Escuchar».');return}
+  state.listen=true;updateAudioProcessing();logEvent('escucha','iniciada_con_audifonos_confirmados');
+  notify('Escucha a nivel bajo activada. Prueba los filtros. Si oyes silbidos, detenla.');
+  if(openedPanel==='audio')openPanel('audio');
+ }catch(e){state.listen=false;updateAudioProcessing();notify('No se puede iniciar la salida: '+e.message)}
+}
+async function toggleMic(){
+ if(state.mic){
+  stopMonitor();if(monitorGain&&ac)monitorGain.gain.value=0;
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  logEvent('microfono','apagado');
+  try{await ac?.close()}catch(e){}
+  ac=null;micSource=null;analyser=null;samples=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
+  state.mic=false;state.digitalDb=-100;state.relativeLevel=0;
+  renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');notify('Micrófono apagado. Sin reproducción.');
+  return;
+ }
+ if(!navigator.mediaDevices?.getUserMedia||!window.isSecureContext){notify('El micrófono requiere HTTPS y permiso del navegador.');return}
+ try {
+  stream=await navigator.mediaDevices.getUserMedia({audio:{
+   channelCount:1,echoCancellation:false,noiseSuppression:false,autoGainControl:false
+  },video:false});
+  ac=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  micSource=ac.createMediaStreamSource(stream);
+  analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.45;
+  samples=new Uint8Array(analyser.fftSize);micSource.connect(analyser);
+  filterHigh=ac.createBiquadFilter();filterHigh.type='highpass';filterHigh.frequency.value=70;
+  filterLow=ac.createBiquadFilter();filterLow.type='lowpass';filterLow.frequency.value=12000;
+  limiter=ac.createDynamicsCompressor();
+  limiter.threshold.value=-35;limiter.knee.value=0;limiter.ratio.value=18;limiter.attack.value=.003;limiter.release.value=.20;
+  monitorGain=ac.createGain();monitorGain.gain.value=0;
+  micSource.connect(filterHigh);filterHigh.connect(filterLow);filterLow.connect(limiter);limiter.connect(monitorGain);monitorGain.connect(ac.destination);
+  state.mic=true;state.listen=false;state.inputLabel=(stream.getAudioTracks()[0]?.label||'No identificado').slice(0,80);
+  updateAudioProcessing();logEvent('microfono','encendido_sin_salida');
+  renderHUD();openPanel(openedPanel==='audio'?'audio':'scene');
+  notify('Micrófono activo: ondas y nivel digital. La salida a audífonos sigue APAGADA.');
+ }catch(e){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  if(monitorGain)monitorGain.gain.value=0;
+  try{await ac?.close()}catch(_){}
+  ac=null;analyser=null;samples=null;micSource=null;filterHigh=null;filterLow=null;monitorGain=null;limiter=null;
+  state.mic=false;state.listen=false;notify('No se pudo activar el micrófono: '+e.message);
+  if(openedPanel)openPanel(openedPanel);
+ }
+}
+function tick(t){
+ const dt=Math.min((t-lastTime)/1000||.016,.1);lastTime=t;
+ let motion=state.intensity;
+ if(analyser&&samples&&state.mic){
+   analyser.getByteTimeDomainData(samples);
+   let sum=0;for(const val of samples){const z=(val-128)/128;sum+=z*z}
+   const rms=Math.sqrt(sum/samples.length);
+   state.digitalDb=rms>0.00001?Math.max(-100,20*Math.log10(rms)):-100;
+   state.relativeLevel=clamp((state.digitalDb+78)/70,0,1);
+   motion=Math.min(1,Math.pow(rms*8,.70));
+ }
+ frame+=dt*(.4+motion*.7);
+ if(source){
+  // Audio processing at the listener never reduces source emission. Source rings respond to MIC input.
+  rings.forEach((ring,i)=>{
+    const pulse=(frame+i/6)%1;
+    ring.scale.setScalar(.5+pulse*(1.08+motion*.22));
+    ring.material.opacity=(.18+pulse*.07+motion*.38)*(1-pulse*.8);
+  });
+  materialParts.forEach(m=>{m.rotation.y=frame*.3;m.material.color.setHex(motion>.66?0xffc184:0x3adccb)});
+ }
+ if(state.listen && state.digitalDb>-4.5){stopMonitor();notify('Entrada digital saturada: escucha detenida por precaución.')}
+ if(t-lastHud>280){
+  lastHud=t;
+  if(state.started)renderHUD();
+  if(openedPanel==='time'&&$('#score'))$('#score').textContent=score();
+  if(state.mic){
+    const label=state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(1)+' dB ref.';
+    if($('#audioReadout'))$('#audioReadout').textContent=label;if($('#rawReadout'))$('#rawReadout').textContent=state.digitalDb.toFixed(1)+' dBFS';
+    if($('#audioMeterFill'))$('#audioMeterFill').style.width=Math.round(state.relativeLevel*100)+'%';
+    if($('#audioStatusText'))$('#audioStatusText').textContent='Micrófono activo · escucha '+(state.listen?'ACTIVA':'apagada')+' · visualización relativa';
+  }
+  if(state.listen)updateAudioProcessing();
+ }
+ requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(monitorGain)monitorGain.gain.value=0;stopMonitor()}});
+window.addEventListener('pagehide',()=>{if(monitorGain)monitorGain.gain.value=0;if(stream)stream.getTracks().forEach(t=>t.stop());if(state.started&&window.XR8)try{XR8.stop()}catch(e){}});
+</script></body></html>
