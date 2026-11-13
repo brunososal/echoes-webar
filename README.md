@@ -95,3 +95,13 @@ Ejemplo: `−44.5 dBFS + 93.5 dB = 49.0 dB referenciados (aprox.)`.
 La interfaz muestra simultáneamente el número referenciado y el valor original en dBFS; el usuario puede recalibrar durante otra sesión introduciendo una lectura externa, o volver al valor sin referencia. El offset no constituye una calibración multibanda, no aplica ponderación A ni valida un nivel dBA; no sirve para evaluaciones normativas o protección auditiva. El ajuste puede dejar de ser válido al cambiar de micrófono, usar AirPods como entrada o variar el procesamiento de audio del sistema. Para comparar, mantener ambos equipos próximos y en condiciones estables durante 15–30 segundos.
 
 **Estado de validación:** código publicado y comprobación de sintaxis JavaScript realizada. La respuesta del indicador en Safari iPhone real todavía debe probarse después de estos cambios.
+
+## v0.9 (beta) — Controles superpuestos y micrófono desde inicio
+
+La experiencia `lab.html` se rediseñó como un entorno de RA con **acciones de un toque**: colocar fuente, alternar barrera, EPP (CNC), micrófono, cambiar escenarios y duración. Los widgets se abren como tarjetas compactas sobre la escena, no como paneles largos. Audio muestra un resumen de captura y filtros; la calibración queda detrás del control secundario «Calibración y detalles».
+
+**Micrófono:** al tocar **Iniciar RA + micrófono**, el sitio intenta solicitar acceso y comenzar la captura como parte del arranque. Safari exige autorización de usuario la primera vez. Si no da permiso o la captura falla, la RA puede seguir con una visualización simulada. La escucha por audífonos **permanece apagada** hasta activar explícitamente «Escuchar» y confirmar audífonos y bajo volumen.
+
+**Audífonos y detección:** `enumerateDevices()` permite inspeccionar lo que Safari decida exponer, pero **no asegura conocer la salida activa**. Puede mostrar «posible audífono», «audífono como entrada; salida no confirmada» o «salida no verificable». No se activa automáticamente la escucha a partir de esas pistas. Si se detecta un cambio de dispositivos durante la reproducción se silencia la ruta monitorizada por precaución. Una etiqueta reconocible de micrófono de audífonos invalida la referencia provisional aplicada para el micrófono del iPhone.
+
+**Limitaciones y prueba:** se verificó sintaxis JS y que las acciones tengan sus manejadores en el código; falta validar permisos simultáneos de cámara/micrófono y el comportamiento de tarjetas y dispositivos en Safari del iPhone. Esta interfaz no detecta fuentes acústicas ni controla ANC.
