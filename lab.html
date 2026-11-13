@@ -126,7 +126,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js';
 window.THREE=THREE;
 const $=(s)=>document.querySelector(s);
-const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false,listen:false,headphones:false,preset:'natural',monitorVolume:15,refDb:49,calOffset:93.5,calOrigin:'provisional',digitalDb:-100,relativeLevel:0,inputLabel:'sin identificar'};
+const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false,listen:false,headphones:false,preset:'natural',monitorVolume:15,refDb:49,calOffset:93.5,calOrigin:'provisional',digitalDb:-100,relativeLevel:0,inputLabel:'sin identificar',audioAdvanced:false,routeLabel:'Salida no verificable',micStarting:false};
 let source=null, xrScene=null, xrCamera=null, wall=null, floorGuard=null, stream=null,ac=null,analyser=null,samples=null,materialParts=[],rings=[],lastTime=0,frame=0,baseDistance=null,lastHud=0,tracking='INITIALIZING',micSource=null,filterHigh=null,filterLow=null,monitorGain=null,limiter=null,audioPeak=0,lastAudioMeter=0;
 const base={cnc:.9,office:.46,street:.7};
 const names={cnc:'CNC',office:'Oficina',street:'Calle'};
@@ -250,111 +250,117 @@ $('#close').addEventListener('click',closePanel);$('#shade').addEventListener('c
 function choice(label,key,val,selected){return '<button class="choice '+(selected?'on':'')+'" data-key="'+key+'" data-val="'+val+'">'+label+'</button>'}
 function openPanel(kind){
  openedPanel=kind;
- const titles={scene:'Escenarios y audio',control:'Intervenciones preventivas',time:'Tiempo y exposición',effects:'Consecuencias posibles',mission:'Misión: intervén el ruido',audio:'Sonido reactivo'};
- $('#sheetTitle').textContent=titles[kind]||'Opciones';
+ const titles={scene:'Escenario',control:'Medidas',time:'Duración',effects:'Efectos',audio:'Audio',mission:'Reto'};
+ $('#sheetTitle').textContent=titles[kind]||'Controles';
  let body='';
  if(kind==='scene'){
- body='<p>Elige un contexto. La fuente se coloca manualmente y el micrófono no determina su posición.</p><div class="grid">'+
- choice('🏭 Taller CNC','scene','cnc',state.scene==='cnc')+
- choice('🏢 Oficina','scene','office',state.scene==='office')+
- choice('🚙 Calle','scene','street',state.scene==='street')+
- '</div><label>Visualización reactiva al sonido</label><button class="choice '+(state.mic?'on':'')+'" id="micBtn">'+(state.mic?'■ Apagar micrófono':'◉ Activar micrófono')+'</button><p>Las ondas responden a la intensidad relativa captada, pero nunca son un mapa de ruido real.</p>';
+  body='<div class="grid">'+choice('🏭 CNC','scene','cnc',state.scene==='cnc')+
+   choice('🏢 Oficina','scene','office',state.scene==='office')+
+   choice('🚙 Calle','scene','street',state.scene==='street')+'</div>';
  }
  if(kind==='control'){
- body='<p>Las medidas no están calibradas. Compara los principios: reducir emisión o propagación no es igual que proteger el oído.</p>'+
- '<label>Propagación</label><div class="grid">'+choice('Sin barrera','barrier','off',!state.barrier)+choice('Poner barrera 3D','barrier','on',state.barrier)+'</div>'+
- '<label>Separación espacial</label><p>Camina despacio alrededor del objeto en un lugar seguro: el sistema utiliza la posición relativa para cambiar un índice <strong>didáctico</strong>. No es una medición de distancia ni una atenuación acústica validada.</p>'+
- (state.scene==='cnc'?'<label>Protección del oído</label><div class="grid">'+choice('Sin protección','protect','off',!state.protect)+choice('Con EPP ajustado','protect','on',state.protect)+'</div>':'')+
- '<div id="info">La barrera virtual se ubica entre la fuente y la posición del teléfono cuando la activas. Los anillos de la fuente continúan visibles aunque uses EPP: el ruido ambiental no desaparece.</div>';
+  body='<div class="grid">'+choice('▥ Barrera','barrier','on',state.barrier)+choice('○ Sin barrera','barrier','off',!state.barrier)+choice('⊕ Ubicar','placement','on',state.placing)+'</div>'+
+   (state.scene==='cnc'?'<label>Protección personal</label><div class="grid">'+choice('◈ Con EPP','protect','on',state.protect)+choice('Sin EPP','protect','off',!state.protect)+'</div>':'')+
+   '<p>El EPP afecta el sonido al receptor, no apaga la fuente.</p>';
  }
  if(kind==='time'){
- body='<p>Cambiar el tiempo debe afectar a la exposición ilustrativa y no a la emisión de la fuente.</p>'+
- '<label>Duración de ejemplo: <strong id="hVal">'+state.hours+'</strong> horas</label>'+
- '<input id="hInput" type="range" min=".5" max="8" step=".5" value="'+state.hours+'">'+
- '<div id="info">Huella relativa de aprendizaje: <strong id="score">'+score()+'</strong> / 100. Sin unidades, sin equivalencia con dosis real.</div>'+
- '<p>Compara primero 8 horas y luego 1 hora. ¿Qué cambia aunque la máquina continúe emitiendo ruido?</p>';
+  body='<div class="audioBar"><span>Exposición hipotética</span><strong id="hVal">'+state.hours+' h</strong></div>'+
+   '<input id="hInput" type="range" min=".5" max="8" step=".5" value="'+state.hours+'">'+
+   '<p>Huella didáctica: <b id="score">'+score()+'</b>/100 · No equivale a dosis acústica.</p>';
  }
  if(kind==='effects'){
- const facts=[
- ['👂 Pérdida auditiva','La exposición repetida a niveles elevados puede producir daño auditivo permanente. El valor mostrado aquí no estima ese riesgo para ti.'],
- ['〰 Acúfenos','Zumbidos o pitidos que pueden asociarse a exposición al ruido. No se puede diagnosticar su aparición con este prototipo.'],
- ['🧠 Fatiga y atención','En determinadas condiciones, el ruido puede interferir con la concentración, aumentar molestia y contribuir a fatiga.'],
- ['💬 Comunicación','El ruido puede enmascarar instrucciones y alarmas. Reducirlo también ayuda a reconocer señales importantes.']
- ];
- body='<p>Estos efectos tienen respaldo general, pero <strong>ninguno se predice desde el micrófono</strong>. La simulación sólo permite comprender relaciones.</p>'+
- facts.map(([title,desc])=>'<div class="facts"><b>'+title+'</b><p>'+desc+'</p></div>').join('')+
- '<div id="info">No se presentan mareos ni dolores de cabeza como consecuencia universal de una duración e intensidad determinada.</div>';
+  const facts=[
+   ['👂 Audición','Exposición elevada repetida: posible daño permanente'],
+   ['〰 Acúfenos','Pueden relacionarse con ruido elevado'],
+   ['🧠 Fatiga','El ruido puede afectar la concentración'],
+   ['💬 Alarmas','Puede ocultar voces y señales']
+  ];
+  body='<div class="grid">'+facts.map(([head,desc])=>'<div class="facts"><b>'+head+'</b><p>'+desc+'</p></div>').join('')+'</div><p>No son predicciones clínicas.</p>';
  }
  if(kind==='audio'){
- body='<p>Escucha la señal captada por el micrófono con procesamiento didáctico. La escucha está <b>apagada de forma predeterminada</b>.</p>'+
- '<div class="audioBar"><span class="audioSmall">Nivel referenciado (aprox.)</span><strong id="audioReadout">'+(state.mic?(state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(1)+' dB ref.'):'—')+'</strong></div>'+ '<p class="audioSmall">Valor digital sin calibrar: <strong id="rawReadout">'+(state.mic?state.digitalDb.toFixed(1)+' dBFS':'—')+'</strong></p>'+
- '<div class="audioMeter"><div id="audioMeterFill" style="width:'+Math.round(state.relativeLevel*100)+'%"></div></div>'+
- '<p id="audioStatusText" class="audioSmall">'+(state.mic?'Micrófono captando · escucha '+(state.listen?'activada':'desactivada'):'Micrófono desactivado · sin grabar audio')+'</p>'+
- '<div class="audioActions"><button class="choice '+(state.mic?'on':'')+'" id="micBtn">'+(state.mic?'■ Apagar micrófono':'◉ Activar micrófono')+'</button><button class="choice '+(state.listen?'on':'')+'" id="monitorBtn">'+(state.listen?'■ Detener escucha':'♫ Escuchar en audífonos')+'</button></div>'+
- '<div class="audioWarn"><b>Precaución auditiva.</b> Conecta audífonos y baja el volumen del iPhone antes de activar la escucha. NO lo utilices para amplificar ruido industrial, ni confíes en estos filtros como protección. El audio en altavoces puede generar realimentación o pitidos fuertes.</div>'+
- '<div class="audioConfirm"><input type="checkbox" id="headphonesConfirm" '+(state.headphones?'checked':'')+'><span>Confirmo que tengo audífonos conectados y que el volumen del iPhone está bajo. La página no puede comprobar la salida de audio automáticamente.</span></div>'+
- '<label>Procesamiento del sonido que escuchas</label>'+
- '<div class="audioPreset">'+
- choice('Original reducido','preset','natural',state.preset==='natural')+
- choice('Atenuación + graves','preset','soft',state.preset==='soft')+
- choice('Voz destacada','preset','voice',state.preset==='voice')+
- choice('Sonido apagado','preset','muffled',state.preset==='muffled')+
- '</div>'+
- '<label>Volumen de escucha <strong id="volValue">'+state.monitorVolume+'%</strong> del límite interno</label>'+
- '<input id="volInput" type="range" min="0" max="100" step="5" value="'+state.monitorVolume+'">'+
- '<p class="audioSmall">La salida está limitada y comienza muy baja. Ajusta también el volumen del sistema; el indicador no representa el nivel real en el oído.</p>'+
- '<label>Referencia acústica de un punto</label>'+ '<div class="audioHelp"><b>'+(state.calOffset===null?'Sin referencia acústica activa.':state.calOrigin==='manual'?'Referencia modificada manualmente.':'Referencia inicial: 49 dB frente a −44.5 dBFS.')+'</b> '+(state.calOffset===null?'Actualmente sólo se muestra dBFS.':'Corrección activa: '+(state.calOffset>=0?'+':'')+state.calOffset.toFixed(1)+' dB sobre la señal digital. <b>Estimación didáctica, no dBA validado.</b>')+' Para recalibrar, compara en un ambiente estable durante 15–30 segundos con el sonómetro y emplea la referencia obtenida. Entrada detectada: <b id="inputDevice"></b>.</div>'+
- '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap"><input type="number" id="refInput" min="40" max="110" step=".5" placeholder="p. ej. 49" value="'+(state.refDb===null?'':state.refDb)+'" aria-label="Nivel de referencia en dB"><button class="choice" id="calibrateBtn">Recalibrar</button><button class="choice" id="resetCalBtn">Mostrar dBFS</button></div>'+
- '<p class="audioSmall">Con esta referencia se muestran dB acústicos orientativos, <b>no dBA medidos</b>. Sin ella, dBFS. Si cambias de micrófono, conectas AirPods o varía la ganancia automática, se debe volver a calibrar. Este algoritmo no aplica ponderación A ni cumple una norma de sonometría.</p>'+
- '<div class="audioHelp">Con AirPods puedes activar ANC desde los propios audífonos y comparar sensaciones. <b>ECHOES no controla ANC</b> y los filtros web no equivalen a una atenuación real de EPP. Si hay retraso o pitidos, detén la escucha.</div>';
+  const d=state.mic,cal=state.calOffset===null,approx=(state.digitalDb+(state.calOffset||0)).toFixed(0);
+  body='<div class="audioBar"><span>Micrófono · '+(d?'activo':'apagado')+'</span><strong id="audioReadout">'+(d?(cal?state.digitalDb.toFixed(0)+' dBFS':approx+' dB*'):'—')+'</strong></div>'+
+   '<div class="audioMeter"><div id="audioMeterFill" style="width:'+Math.round(state.relativeLevel*100)+'%"></div></div>'+
+   '<p><span id="rawReadout">'+(d?state.digitalDb.toFixed(1)+' dBFS':'Sin señal')+'</span> · '+(cal?'Sin referencia':'Ref. +'+state.calOffset.toFixed(1)+' dB (orientativa)')+'</p>'+
+   '<div class="audioActions"><button id="micBtn" class="choice '+(d?'on':'')+'">'+(d?'● Micrófono ON':'◉ Activar micrófono')+'</button><button id="monitorBtn" class="choice '+(state.listen?'on':'')+'">'+(state.listen?'■ Detener escucha':'♫ Escuchar')+'</button></div>'+
+   '<p>Salida: <b id="routeStatus"></b> <button id="probeRoute" class="choice" style="min-height:25px;padding:4px 8px">↻</button></p>'+
+   '<label class="audioConfirm"><input type="checkbox" id="headphonesConfirm" '+(state.headphones?'checked':'')+'> Audífonos conectados y volumen bajo (confirmación manual)</label>'+
+   '<div class="audioPreset">'+
+    choice('Original','preset','natural',state.preset==='natural')+
+    choice('Suave','preset','soft',state.preset==='soft')+
+    choice('Voz','preset','voice',state.preset==='voice')+
+    choice('Opaco','preset','muffled',state.preset==='muffled')+'</div>'+
+   '<label>Escucha <b id="volValue">'+state.monitorVolume+'%</b> del límite interno</label>'+
+   '<input id="volInput" type="range" min="0" max="100" step="5" value="'+state.monitorVolume+'">'+
+   '<button id="advancedAudio" class="choice" style="margin-top:8px;width:100%">⚙ '+(state.audioAdvanced?'Ocultar ajuste de referencia':'Calibración y detalles')+'</button>'+
+   (state.audioAdvanced?'<p>Referencia de un punto, no dBA validado. −44.5 dBFS ≈ 49 dB (sonómetro).</p>'+
+    '<div style="display:flex;gap:5px"><input id="refInput" type="number" min="40" max="110" step=".5" value="'+(state.refDb??'')+'" aria-label="Referencia del sonómetro">'+
+    '<button class="choice" id="calibrateBtn">Calibrar</button><button class="choice" id="resetCalBtn">Sólo dBFS</button></div>'+
+    '<p>Entrada: <b id="inputDevice"></b></p>':'')+
+   '<p>Sin grabación. Volumen bajo; detén si hay eco. ANC no se controla.</p>';
  }
  if(kind==='mission'){
- const flags=missionFlags(),done=missionCount(),todo=[
- 'Coloca una fuente virtual con «Ubicar fuente» y toca la imagen.',
- 'Activa una barrera entre la fuente y el observador.',
- 'En el escenario CNC, activa el EPP y observa que las ondas siguen.',
- 'Cambia el tiempo para comparar la huella didáctica.',
- 'Responde: ¿qué hace el EPP auditivo correctamente ajustado?'
- ];
- body='<p>Explora las decisiones preventivas. Este recorrido genera evidencia sobre <strong>comprensión de conceptos</strong>, no sobre daño real.</p>'+
- '<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#beefdf">PROGRESO <strong>'+done+' / 5</strong></div>'+
- '<div class="progress-track"><div style="width:'+(done*20)+'%"></div></div>'+
- todo.map((item,i)=>'<div class="challenge-item"><span class="challenge-dot '+(flags[i]?'done':'')+'">'+(flags[i]?'✓':(i+1))+'</span><div>'+item+'</div></div>').join('')+
- '<label>Comprobación de aprendizaje</label>'+
- '<div class="quiz"><button class="choice '+(state.answered==='source'?'wrong':'')+'" data-answer="source">Silencia la máquina y el taller</button>'+
- '<button class="choice '+(state.answered==='receptor'?'correct':'')+'" data-answer="receptor">Reduce el sonido que llega al oído</button></div>'+
- '<div id="info">'+(state.answered==='source'?'No: el EPP no reduce la emisión de la máquina. Prueba la segunda respuesta.':state.answered==='receptor'?'Correcto: protege al receptor, no silencia la fuente.':done===5?'¡Misión completada!':'Continúa con los controles y vuelve aquí para revisar tus decisiones.')+'</div>'+
- '<p style="margin-top:16px"><button class="choice" id="missionPlace">⊕ Ubicar / cambiar fuente virtual</button></p>'+'<p><button class="choice" id="exportSession">↓ Descargar bitácora de la sesión (JSON)</button></p>'+'<p>No se almacena ni envía información automáticamente. El archivo registra decisiones y tiempos relativos, pero no imágenes, sonido ni coordenadas.</p>';
+  const flags=missionFlags(),done=missionCount();
+  const tasks=['Ubicar','Barrera','EPP (CNC)','Tiempo','Responder'];
+  body='<p>Progreso: <b>'+done+'/5</b></p><div class="progress-track"><div style="width:'+done*20+'%"></div></div>'+
+  '<div style="display:flex;gap:4px;flex-wrap:wrap">'+tasks.map((label,i)=>'<span class="challenge-dot '+(flags[i]?'done':'')+'" style="width:auto;min-width:25px;padding:3px 7px;font-size:10px;border-radius:8px">'+(flags[i]?'✓ ':'')+label+'</span>').join('')+'</div>'+
+  '<p>¿El EPP apaga el ruido ambiental?</p><div class="grid">'+
+   '<button class="choice '+(state.answered==='source'?'wrong':'')+'" data-answer="source">Sí</button>'+
+   '<button class="choice '+(state.answered==='receptor'?'correct':'')+'" data-answer="receptor">No, protege el oído</button></div>'+
+  '<div class="grid" style="margin-top:8px"><button id="missionPlace" class="choice">⊕ Fuente</button><button id="exportSession" class="choice">↓ Bitácora JSON</button></div>';
  }
- $('#sheetBody').innerHTML=body;if($('#inputDevice'))$('#inputDevice').textContent=state.inputLabel;$('#shade').classList.add('open');$('#sheet').classList.add('open');
+ $('#sheetBody').innerHTML=body;
+ if($('#inputDevice'))$('#inputDevice').textContent=state.inputLabel;
+ if($('#routeStatus'))$('#routeStatus').textContent=state.routeLabel;
+ $('#sheet').classList.add('open');
  document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{
-   const k=b.dataset.key,v=b.dataset.val;
-   if(k==='scene'){state.scene=v;state.protect=false;logEvent('escenario',v);}
-   else if(k==='barrier'){state.barrier=v==='on';logEvent('barrera',v);}
-   else if(k==='distance'){state.distance=v==='on';logEvent('distancia_didactica',v);}
-   else if(k==='protect'){state.protect=v==='on';logEvent('epp',v);}
-   else if(k==='preset'){state.preset=v;logEvent('filtro_audio',v);}
-   updateAudioProcessing();syncBarrier();renderHUD();openPanel(kind);
+  const k=b.dataset.key,v=b.dataset.val;
+  if(k==='scene'){state.scene=v;state.protect=false;logEvent('escenario',v);}
+  else if(k==='barrier'){state.barrier=v==='on';logEvent('barrera',v);}
+  else if(k==='protect'){state.protect=v==='on';logEvent('epp',v);}
+  else if(k==='preset'){state.preset=v;logEvent('filtro_audio',v);}
+  else if(k==='placement'){closePanel();placeMode(true);return}
+  updateAudioProcessing();syncBarrier();renderHUD();openPanel(kind);
  });
  const range=$('#hInput');if(range)range.oninput=e=>{
-   state.hours=Number(e.target.value);state.movedTime=true;logEvent('duracion_horas',state.hours);
-   $('#hVal').textContent=state.hours;$('#score').textContent=score();renderHUD();
+  state.hours=Number(e.target.value);state.movedTime=true;logEvent('duracion_horas',state.hours);
+  $('#hVal').textContent=state.hours+' h';$('#score').textContent=score();renderHUD();
  };
- const micBtn=$('#micBtn');if(micBtn)micBtn.onclick=toggleMic;
- const h=$('#headphonesConfirm');if(h)h.onchange=()=>{state.headphones=h.checked;if(!state.headphones&&state.listen){stopMonitor();openPanel('audio')}};
+ const micBtn=$('#micBtn');if(micBtn)micBtn.onclick=()=>toggleMic();
+ const headphones=$('#headphonesConfirm');if(headphones)headphones.onchange=()=>{
+  state.headphones=headphones.checked;if(!state.headphones&&state.listen)stopMonitor();
+  renderHUD();
+ };
  const monitor=$('#monitorBtn');if(monitor)monitor.onclick=toggleMonitor;
- const vol=$('#volInput');if(vol)vol.oninput=()=>{state.monitorVolume=Number(vol.value);const label=$('#volValue');if(label)label.textContent=vol.value+'%';updateAudioProcessing()};
- const cal=$('#calibrateBtn');if(cal)cal.onclick=()=>{
-  const n=Number($('#refInput')?.value);
-  if(!state.mic||state.digitalDb < -78||!Number.isFinite(n)||n<40||n>110){notify('Activa el micrófono e introduce una referencia externa de 40 a 110 dB.');return}
-  state.refDb=n;state.calOffset=n-state.digitalDb;state.calOrigin='manual';logEvent('calibracion_referencia','un punto externo, no normativa');notify('Referencia ajustada en este ambiente; lectura sólo orientativa.');openPanel('audio');
+ const vol=$('#volInput');if(vol)vol.oninput=()=>{
+  state.monitorVolume=Number(vol.value);$('#volValue').textContent=vol.value+'%';updateAudioProcessing();
  };
- const resetCal=$('#resetCalBtn');if(resetCal)resetCal.onclick=()=>{state.calOffset=null;state.refDb=null;state.calOrigin='sin referencia';openPanel('audio')};
-
- document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{state.answered=b.dataset.answer;logEvent('pregunta_epp',state.answered);renderHUD();openPanel('mission')});
- const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};const exp=$('#exportSession');if(exp)exp.onclick=exportSession;
+ const advanced=$('#advancedAudio');if(advanced)advanced.onclick=()=>{
+  state.audioAdvanced=!state.audioAdvanced;openPanel('audio');
+ };
+ const probe=$('#probeRoute');if(probe)probe.onclick=probeAudioRoute;
+ const cal=$('#calibrateBtn');if(cal)cal.onclick=()=>{
+  const v=Number($('#refInput')?.value);
+  if(!state.mic||state.digitalDb<-78||!Number.isFinite(v)||v<40||v>110){notify('Se requiere señal y referencia de 40–110 dB.');return;}
+  state.refDb=v;state.calOffset=v-state.digitalDb;state.calOrigin='manual';
+  logEvent('calibracion_referencia','un solo punto; estimación no normativa');openPanel('audio');
+ };
+ const reset=$('#resetCalBtn');if(reset)reset.onclick=()=>{
+  state.refDb=null;state.calOffset=null;state.calOrigin='sin referencia';openPanel('audio');
+ };
+ document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{
+  state.answered=b.dataset.answer;logEvent('pregunta_epp',state.answered);
+  notify(state.answered==='receptor'?'Correcto: el EPP protege al oído.':'El EPP no silencia la fuente.');
+  renderHUD();openPanel('mission');
+ });
+ const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};
+ const exp=$('#exportSession');if(exp)exp.onclick=exportSession;
 }
-document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.widget)));
+document.querySelectorAll('[data-widget]').forEach(b=>b.addEventListener('click',()=>{
+ const kind=b.dataset.widget;
+ if(openedPanel===kind){closePanel();return}
+ openPanel(kind);
+}));
 // Web Audio signal flow:
 // Microphone -> analyser (visual metering only)
 //            -> high-pass -> low-pass -> strong compressor -> very-low-gain -> system audio output.
