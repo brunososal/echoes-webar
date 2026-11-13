@@ -103,7 +103,7 @@ $("#dot").classList.toggle("live",state.mic);
 $("#micStatus").textContent=state.mic?"Micrófono activo":"Micrófono sin señal";
 const modeName={observe:"LENTE ACÚSTICO · AMBIENTE",intervene:"INTERVENCIÓN SIMULADA · RECEPTOR",audio:"ESCUCHA · PROCESAMIENTO"}[state.mode]||"LENTE ACÚSTICO";
 $("#modeTitle").textContent=modeName;
-$("#explain").textContent=state.mode==="intervene"&&state.intervention!=="none"?
+$("#explain").textContent=state.intervention!=="none"?
 "El indicador de color sigue mostrando la entrada ambiental. Sólo cambia la representación y el audio procesado.":"El micrófono alimenta el color y las partículas. La escala es relativa, no una medida certificada de riesgo.";
 $("#mutebtn").classList.toggle("on",state.listen);
 allButtons();
@@ -124,9 +124,9 @@ function renderPanel(){
 $("#panel").classList.add("open");
 $("#panelTitle").textContent=state.mode==="audio"?"Audio por audífonos":"Transformación perceptiva";
 if(state.mode==="intervene"){
-const choices=[["none","Sin filtro"],["ppe","EPP virtual"],["source","Menos emisión*"],["low","Graves atenuados"],["muffled","Agudos opacados"]];
+const choices=[["none","Sin filtro"],["ppe","EPP virtual"],["low","Graves atenuados"],["muffled","Agudos opacados"]];
 $("#panelBody").innerHTML='<div class="options">'+choices.map(([key,label])=>'<button data-intervention="'+key+'" class="'+(state.intervention===key?'selected':'')+'">'+label+'</button>').join("")+'</div>'+
-'<p>La entrada ambiental no cambia. *«Menos emisión» es una transformación digital de toda la señal, no un aislamiento de fuentes. «EPP» es ilustrativo y no representa la protección real de audífonos.</p>';
+'<p>La entrada ambiental no cambia. Los filtros modifican exclusivamente la señal reproducida. El EPP virtual es ilustrativo y no representa la protección real de los audífonos.</p>';
 document.querySelectorAll("[data-intervention]").forEach(b=>b.onclick=()=>{state.intervention=b.dataset.intervention;log("intervencion",state.intervention);updateProcessing();renderPanel();updateInfo()});
 }
 if(state.mode==="audio"){
@@ -144,7 +144,7 @@ $("#volumeRange").oninput=e=>{state.volume=Number(e.target.value);$("#volumeText
 }
 }
 function graph(){if(!audioCtx||!output)return;
-const modes={none:{hp:65,lp:15500,f:1},ppe:{hp:240,lp:1600,f:.40},source:{hp:65,lp:15500,f:.38},low:{hp:480,lp:14000,f:.80},muffled:{hp:65,lp:950,f:.65}};
+const modes={none:{hp:65,lp:15500,f:1},ppe:{hp:240,lp:1600,f:.40},low:{hp:480,lp:14000,f:.80},muffled:{hp:65,lp:950,f:.65}};
 const m=modes[state.intervention]||modes.none;
 hp.frequency.setTargetAtTime(m.hp,audioCtx.currentTime,.05);
 lp.frequency.setTargetAtTime(m.lp,audioCtx.currentTime,.05);
@@ -248,7 +248,7 @@ const target=state.mic?clamp((state.level+67)/51,0,1):.18;
 state.smoothed+=(target-state.smoothed)*.07;
 const [r,g,b]=color(state.smoothed);
 $("#ambientTint").style.background="rgba("+r+","+g+","+b+","+(0.05+state.smoothed*.23)+")";
-const intervention=state.intervention!=="none"&&state.mode==="intervene";
+const intervention=state.intervention!=="none";
 const amount=intervention?.10+(.18*state.smoothed):0;
 $("#receiverTint").style.background="rgba(66,193,193,"+amount+")";
 $("#receiverTint").style.clipPath=state.compare?"inset(0 0 0 50%)":"none";
