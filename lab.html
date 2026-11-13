@@ -56,6 +56,20 @@
 .choice.correct{background:#14796b;border-color:#8cffd8}.choice.wrong{background:#644545;border-color:#d49e92}
 #sourceStatus{color:#8af8dd!important}
 @media(max-width:390px){.top{gap:5px}.top button,.top a{padding:9px 8px;font-size:10px}.logo{font-size:14px}.toolbar button{font-size:9px;padding:7px 1px}}
+
+.audioBar{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:12px 0 7px}.audioBar strong{font-size:27px;font-variant-numeric:tabular-nums;color:#a3ffe3}
+.audioMeter{height:11px;background:#193a47;border:1px solid #437981;border-radius:8px;overflow:hidden}.audioMeter>div{height:100%;background:linear-gradient(90deg,#55e4cc,#f4d27c);width:0;transition:width .13s}
+.audioHelp{font-size:11px;line-height:1.55;color:#c6dcd9;background:#10343d;border:1px solid #315b62;border-radius:12px;padding:11px;margin-top:11px}
+.audioActions{display:flex;gap:9px;margin:12px 0}.audioActions button{flex:1;text-align:center}
+.audioWarn{border:1px solid #dcab6990;background:#4b34258c;color:#fff0d7;padding:12px;border-radius:12px;font-size:12px;line-height:1.5}
+.audioConfirm{display:flex;gap:10px;align-items:flex-start;margin:14px 0;font-size:12px;line-height:1.45;color:#edfaee}
+.audioConfirm input{width:18px;height:18px;accent-color:#5edebd;flex:none;margin:2px}
+.audioSmall{font-size:11px;color:#a0c4c3;line-height:1.5}
+.audioPreset{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#sheet input[type="number"]{background:#0b2e38;color:#effffb;border:1px solid #528081;padding:11px;width:90px;border-radius:9px}
+.audio-safe{color:#a5f3df}.audio-off{color:#ffcfab}
+.toolbar{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media(max-width:390px){.toolbar button{font-size:8px}.toolbar .glyph{font-size:19px}}
 </style>
 </head><body>
 <canvas id="camerafeed"></canvas>
@@ -64,8 +78,8 @@
 <div class="tag">RA ESPACIAL · FUENTE ELEGIDA POR TI · NO ACÚSTICA MEDIDA</div><div id="taskstatus">Coloca una fuente virtual y experimenta con controles preventivos.</div>
 <div id="message" role="status">Inicia la cámara y mueve lentamente el teléfono para establecer el seguimiento.</div>
 <div class="target" id="target"></div>
-<div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>HUELLA SIMULADA · NO dBA</small><strong id="status">SIMULADA</strong><small id="sourceStatus">Referencia no elegida</small></div></div>
-<div class="toolbar"><button data-widget="scene"><span class="glyph">▦</span>Entorno</button><button data-widget="control"><span class="glyph">♢</span>Control</button><button data-widget="time"><span class="glyph">◷</span>Tiempo</button><button data-widget="effects"><span class="glyph">◉</span>Efectos</button><button data-widget="mission"><span class="glyph">✓</span>Misión</button></div></div>
+<div class="bottom"><div class="hud"><div class="state"><small>ESCENARIO</small><strong id="scenario">CNC</strong></div><div class="state" style="text-align:right"><small>HUELLA SIMULADA · NO dBA</small><strong id="status">SIMULADA</strong><small id="micMeterStatus">MICRÓFONO APAGADO</small><small id="sourceStatus">Referencia no elegida</small></div></div>
+<div class="toolbar"><button data-widget="scene"><span class="glyph">▦</span>Entorno</button><button data-widget="control"><span class="glyph">♢</span>Control</button><button data-widget="time"><span class="glyph">◷</span>Tiempo</button><button data-widget="effects"><span class="glyph">◉</span>Efectos</button><button data-widget="audio"><span class="glyph">♫</span>Escuchar</button><button data-widget="mission"><span class="glyph">✓</span>Misión</button></div></div>
 <div id="shade"></div>
 <div id="sheet"><button id="close" aria-label="Cerrar">×</button><h2 id="sheetTitle"></h2><div id="sheetBody"></div></div>
 <div id="launch"><div class="launch"><small>ECHOES / LABORATORIO ESPACIAL / V0.6</small><h1>El ruido deja <span style="color:#76f4d7">huella.</span></h1><p>Coloca un campo acústico virtual en tu entorno. Al moverte, las ondas deberán permanecer en su posición tridimensional.</p><div class="note"><b>Laboratorio espacial:</b> selecciona dónde simular una fuente, coloca una barrera virtual y observa qué pasa con la representación desde distintas posiciones. Es una metáfora educativa; no hay mapa acústico real. No operes máquinas ni camines por el tráfico durante la prueba.</div><button id="start">Iniciar RA espacial</button><div id="bootStatus" style="color:#9cd7d5;font-size:12px;margin-bottom:15px">Requiere Safari, permiso de cámara e internet.</div><a href="./">Volver a simulación</a></div></div>
@@ -74,8 +88,8 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js';
 window.THREE=THREE;
 const $=(s)=>document.querySelector(s);
-const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false};
-let source=null, xrScene=null, xrCamera=null, wall=null, floorGuard=null, stream=null,ac=null,analyser=null,samples=null,materialParts=[],rings=[],lastTime=0,frame=0,baseDistance=null,lastHud=0,tracking='INITIALIZING';
+const state={started:false,scene:'cnc',protect:false,barrier:false,distance:false,hours:4,mic:false,intensity:.42,placed:false,placing:false,answered:null,movedTime:false,listen:false,headphones:false,preset:'natural',monitorVolume:15,refDb:null,calOffset:null,digitalDb:-100,relativeLevel:0};
+let source=null, xrScene=null, xrCamera=null, wall=null, floorGuard=null, stream=null,ac=null,analyser=null,samples=null,materialParts=[],rings=[],lastTime=0,frame=0,baseDistance=null,lastHud=0,tracking='INITIALIZING',micSource=null,filterHigh=null,filterLow=null,monitorGain=null,limiter=null,audioPeak=0,lastAudioMeter=0;
 const base={cnc:.9,office:.46,street:.7};
 const names={cnc:'CNC',office:'Oficina',street:'Calle'};
 const notify=(msg)=>{$('#message').textContent=msg};
@@ -164,7 +178,7 @@ function syncBarrier(){
 const score=()=>{let e=base[state.scene]*(state.barrier?.75:1)*distanceFactor()*(state.protect&&state.scene==='cnc'?.57:1);return Math.min(100,Math.round(e*Math.sqrt(state.hours/8)*100))};
 function renderHUD(){
  $('#scenario').textContent=names[state.scene];
- $('#status').textContent=score()+'/100'+(state.mic?' · MIC':'');
+ $('#status').textContent=score()+'/100'+(state.listen?' · AUDIO':state.mic?' · MIC':'');$('#micMeterStatus').textContent=state.mic?(state.calOffset===null?state.digitalDb.toFixed(0)+' dBFS (digital)':(state.digitalDb+state.calOffset).toFixed(0)+' dB aprox. *'):'MICRÓFONO APAGADO';
  $('#sourceStatus').textContent=state.placed?'Fuente elegida · '+(distanceFactor()>.96?'cerca':distanceFactor()>.74?'intermedia':'más alejada'):'Anclaje inicial';
  if(source){const scale=state.scene==='cnc'?1:state.scene==='street'?.85:.68;source.scale.setScalar(scale);}
  $('#taskstatus').textContent=state.placing?'Toca la vista de cámara para colocar la fuente virtual':'Misión de aprendizaje: '+missionCount()+'/5 etapas';
