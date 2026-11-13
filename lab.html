@@ -247,6 +247,29 @@ function openPanel(kind){
  facts.map(([title,desc])=>'<div class="facts"><b>'+title+'</b><p>'+desc+'</p></div>').join('')+
  '<div id="info">No se presentan mareos ni dolores de cabeza como consecuencia universal de una duración e intensidad determinada.</div>';
  }
+ if(kind==='audio'){
+ body='<p>Escucha la señal captada por el micrófono con procesamiento didáctico. La escucha está <b>apagada de forma predeterminada</b>.</p>'+
+ '<div class="audioBar"><span class="audioSmall">Nivel de entrada</span><strong id="audioReadout">'+(state.mic?(state.calOffset===null?state.digitalDb.toFixed(1)+' dBFS':(state.digitalDb+state.calOffset).toFixed(0)+' dB*'):'—')+'</strong></div>'+
+ '<div class="audioMeter"><div id="audioMeterFill" style="width:'+Math.round(state.relativeLevel*100)+'%"></div></div>'+
+ '<p id="audioStatusText" class="audioSmall">'+(state.mic?'Micrófono captando · escucha '+(state.listen?'activada':'desactivada'):'Micrófono desactivado · sin grabar audio')+'</p>'+
+ '<div class="audioActions"><button class="choice '+(state.mic?'on':'')+'" id="micBtn">'+(state.mic?'■ Apagar micrófono':'◉ Activar micrófono')+'</button><button class="choice '+(state.listen?'on':'')+'" id="monitorBtn">'+(state.listen?'■ Detener escucha':'♫ Escuchar en audífonos')+'</button></div>'+
+ '<div class="audioWarn"><b>Precaución auditiva.</b> Conecta audífonos y baja el volumen del iPhone antes de activar la escucha. NO lo utilices para amplificar ruido industrial, ni confíes en estos filtros como protección. El audio en altavoces puede generar realimentación o pitidos fuertes.</div>'+
+ '<div class="audioConfirm"><input type="checkbox" id="headphonesConfirm" '+(state.headphones?'checked':'')+'><span>Confirmo que tengo audífonos conectados y que el volumen del iPhone está bajo. La página no puede comprobar la salida de audio automáticamente.</span></div>'+
+ '<label>Procesamiento del sonido que escuchas</label>'+
+ '<div class="audioPreset">'+
+ choice('Original reducido','preset','natural',state.preset==='natural')+
+ choice('Atenuación + graves','preset','soft',state.preset==='soft')+
+ choice('Voz destacada','preset','voice',state.preset==='voice')+
+ choice('Sonido apagado','preset','muffled',state.preset==='muffled')+
+ '</div>'+
+ '<label>Volumen de escucha <strong id="volValue">'+state.monitorVolume+'%</strong> del límite interno</label>'+
+ '<input id="volInput" type="range" min="0" max="100" step="5" value="'+state.monitorVolume+'">'+
+ '<p class="audioSmall">La salida está limitada y comienza muy baja. Ajusta también el volumen del sistema; el indicador no representa el nivel real en el oído.</p>'+
+ '<label>Calibración opcional con referencia externa</label>'+
+ '<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap"><input type="number" id="refInput" min="40" max="110" step="1" placeholder="p. ej. 70" value="'+(state.refDb===null?'':state.refDb)+'" aria-label="Nivel de referencia en dB"><button class="choice" id="calibrateBtn">Calibrar</button><button class="choice" id="resetCalBtn">Quitar</button></div>'+
+ '<p class="audioSmall">Sin calibrar: se muestran dBFS digitales, NO dBA. Para una referencia en dB aproximados, compara simultáneamente el mismo sonido con un sonómetro calibrado. Un solo punto no crea una medición normativa ni aplica ponderación A.</p>'+
+ '<div class="audioHelp">Con AirPods puedes activar ANC desde los propios audífonos y comparar sensaciones. <b>ECHOES no controla ANC</b> y los filtros web no equivalen a una atenuación real de EPP. Si hay retraso o pitidos, detén la escucha.</div>';
+ }
  if(kind==='mission'){
  const flags=missionFlags(),done=missionCount(),todo=[
  'Coloca una fuente virtual con «Ubicar fuente» y toca la imagen.',
@@ -272,13 +295,24 @@ function openPanel(kind){
    else if(k==='barrier'){state.barrier=v==='on';logEvent('barrera',v);}
    else if(k==='distance'){state.distance=v==='on';logEvent('distancia_didactica',v);}
    else if(k==='protect'){state.protect=v==='on';logEvent('epp',v);}
-   syncBarrier();renderHUD();openPanel(kind);
+   else if(k==='preset'){state.preset=v;logEvent('filtro_audio',v);}
+   updateAudioProcessing();syncBarrier();renderHUD();openPanel(kind);
  });
  const range=$('#hInput');if(range)range.oninput=e=>{
    state.hours=Number(e.target.value);state.movedTime=true;logEvent('duracion_horas',state.hours);
    $('#hVal').textContent=state.hours;$('#score').textContent=score();renderHUD();
  };
  const micBtn=$('#micBtn');if(micBtn)micBtn.onclick=toggleMic;
+ const h=$('#headphonesConfirm');if(h)h.onchange=()=>{state.headphones=h.checked;if(!state.headphones&&state.listen)stopMonitor();};
+ const monitor=$('#monitorBtn');if(monitor)monitor.onclick=toggleMonitor;
+ const vol=$('#volInput');if(vol)vol.oninput=()=>{state.monitorVolume=Number(vol.value);const label=$('#volValue');if(label)label.textContent=vol.value+'%';updateAudioProcessing()};
+ const cal=$('#calibrateBtn');if(cal)cal.onclick=()=>{
+  const n=Number($('#refInput')?.value);
+  if(!state.mic||!Number.isFinite(n)||n<40||n>110){notify('Activa el micrófono e introduce una referencia externa de 40 a 110 dB.');return}
+  state.refDb=n;state.calOffset=n-state.digitalDb;logEvent('calibracion_referencia','un punto externo, no normativa');notify('Referencia aplicada a esta sesión; lectura orientativa no certificada.');openPanel('audio');
+ };
+ const resetCal=$('#resetCalBtn');if(resetCal)resetCal.onclick=()=>{state.calOffset=null;state.refDb=null;openPanel('audio')};
+
  document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{state.answered=b.dataset.answer;logEvent('pregunta_epp',state.answered);renderHUD();openPanel('mission')});
  const place=$('#missionPlace');if(place)place.onclick=()=>{closePanel();placeMode(true)};const exp=$('#exportSession');if(exp)exp.onclick=exportSession;
 }
