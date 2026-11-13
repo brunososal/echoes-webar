@@ -345,6 +345,7 @@ function updateAudioProcessing(){
 $('#quickMute').addEventListener('click',()=>{stopMonitor();if(openedPanel==='audio')openPanel('audio')});
 function stopMonitor(){
  if(!state.listen)return;
+ if(monitorGain&&ac){try{monitorGain.gain.cancelScheduledValues(ac.currentTime);monitorGain.gain.setValueAtTime(0,ac.currentTime)}catch(_){monitorGain.gain.value=0}}
  state.listen=false;
  updateAudioProcessing();
  logEvent('escucha','detenida');
