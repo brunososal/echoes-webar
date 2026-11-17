@@ -146,3 +146,20 @@ Pruebas realizadas en el código: sintaxis JavaScript, existencia y unicidad de 
 ## ECHOES 1.3 beta — Barra inferior simplificada
 
 Se eliminaron los botones **Ambiente** e **Intervenir** de `lab.html` porque ya eran redundantes con la captura ambiental constante y el control flotante de oreja/EPP virtual. Se conserva la lectura nativa dBFS, la escala cromática alargada, los efectos de partículas/ondas, y el interruptor de oreja. La barra inferior ahora tiene sólo **Escuchar** (control de audífonos, volumen, salida de prueba y micrófono) y **Evaluar** (cuestionario). El botón EPP **no activa la reproducción**: únicamente prepara o cambia la atenuación en la ruta opcional de audio, dejando intacta la entrada ambiental. Pruebas de código realizadas: validación de sintaxis JS y referencias DOM; pendiente verificar la ergonomía real en Safari iPhone.
+
+## ECHOES 2.0 — recorrido educativo y comparación 2D (noviembre 2026)
+
+**Lente con cámara:** [lab.html](./lab.html)  
+**Comparador informativo sin cámara:** [lab.html?mode=control](./lab.html?mode=control)  
+**Respaldo v1.3:** [lens-v1.3.html](./lens-v1.3.html)  
+**Fundamentación y ruta de evaluación:** [METODOLOGIA_ECHOES_V2.md](./METODOLOGIA_ECHOES_V2.md).
+
+Se conserva la escala reactiva en **dBFS digitales**, la cámara y la oreja de EPP virtual. Se añade un **recorrido de tres actividades**: percibir señal, distinguir ambiente/receptor y resolver una decisión preventiva. El inicio ofrece recorrido guiado con **cuatro preguntas previas** o exploración libre; el recorrido se puede abrir desde la barra inferior. El cierre incluye **cuatro preguntas posteriores equivalentes** (no idénticas), una reflexión opcional y la descarga **local** de respuestas, tiempos, decisiones y condición visual en JSON.
+
+La alternativa 2D comparte señal digital, guion, decisión, audio opcional y evaluación, pero omite cámara y efectos; sólo solicita micrófono y dibuja una gráfica temporal. No se afirma equivalencia experimental ni validez del cuestionario hasta revisarlo con especialistas y usuarios.
+
+**Precisiones imprescindibles:**
+- El modo con cámara es una **superposición visual reactiva**, no AR con seguimiento espacial de fuentes.
+- La escala es relativa y no certifica dBA, dosis auditiva ni seguridad; no estima exposición por duración.
+- La oreja aplica un **filtro de audio digital** a la reproducción expresamente habilitada y muestra un estado perceptivo ilustrativo; no cambia la señal de entrada ni protege físicamente.
+- No se han hecho pruebas con usuarios, comparación causal, ajuste de EPP ni verificación física de esta versión en iPhone.
