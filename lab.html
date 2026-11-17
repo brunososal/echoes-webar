@@ -79,6 +79,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #75f3d5;outline-offse
 .lesson-next{width:100%;background:#0b7f75;border:1px solid #8ce7d5;border-radius:12px;color:#fff;padding:12px;font-size:12px;font-weight:800}
 .lesson-next:disabled{opacity:.45}
 #lessonFeedback{font-size:11px;padding:9px;line-height:1.5;background:#20505a;border-radius:9px;margin:8px 0}
+#panel.lessonMode{max-height:min(40dvh,280px)}
 #controlDisplay{display:none;position:absolute;z-index:5;left:15px;right:15px;top:30%;margin:auto;max-width:450px;padding:16px;border-radius:18px;background:#0d303ddf;border:1px solid #70bdb78a;box-shadow:0 8px 30px #0008}
 #controlDisplay small{font-size:10px;letter-spacing:.06em;color:#bce3de}
 #controlDb{font-size:41px;font-weight:850;display:block;margin:6px 0}
@@ -130,13 +131,13 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const qs={
 pre:[
 {id:"señal",q:"La visualización pasa del azul al rojo al acercar el móvil a una bocina. ¿Qué podemos afirmar?",a:["Que subió la señal digital captada; no conocemos los dBA reales.","Que se rebasó un límite legal de ruido.","Que el teléfono localizó exactamente la fuente."],c:0},
-{id:"origen",q:"En una habitación puedes controlar una bocina demasiado alta. ¿Qué acción reduce primero la emisión de esa fuente?",a:["Alejar el teléfono.","Bajar el volumen de la bocina.","Activar EPP virtual en la aplicación."],c:1},
+{id:"origen",q:"En una habitación puedes controlar una bocina demasiado alta. ¿Qué acción reduce primero la emisión de esa fuente?",a:["Interponer una barrera acústica entre fuente y persona.","Bajar el volumen de la bocina.","Usar protectores auditivos ajustados."],c:1},
 {id:"receptor",q:"Con un filtro del teléfono, oyes el ambiente más tenue en tus audífonos. ¿Qué cambió?",a:["Desapareció el ruido ambiental.","La emisión real de la fuente se redujo.","Se modificó el sonido reproducido, no necesariamente el ambiente."],c:2},
 {id:"duración",q:"Para comparar el posible riesgo de dos exposiciones diferentes, ¿qué datos importan?",a:["Sólo el color mostrado.","Nivel acústico fiable, tiempo y condiciones de exposición.","Qué sonido resulta más molesto."],c:1}
 ],
 post:[
 {id:"señal",q:"La escala de ECHOES se mantiene verde. ¿Qué conclusión está justificada?",a:["Que la exposición es segura.","Que no hay una fuente relevante.","Que la señal digital está en esa zona, sin demostrar seguridad."],c:2},
-{id:"origen",q:"Un extractor de aire emite ruido y puedes ajustar su funcionamiento sin comprometer la tarea. ¿Cuál sería un control en origen?",a:["Ajustar la emisión de la máquina cuando sea viable.","Cambiar el color de ECHOES.","Sólo activar un filtro digital."],c:0},
+{id:"origen",q:"Un extractor de aire emite ruido y puedes ajustar su funcionamiento sin comprometer la tarea. ¿Cuál sería un control en origen?",a:["Ajustar la emisión de la máquina cuando sea viable.","Interponer una pantalla acústica entre extractor y persona.","Usar protección auditiva ajustada."],c:0},
 {id:"receptor",q:"El tapón virtual disminuye lo que oyes en audífonos, pero la escala ambiental no cambia. ¿Por qué?",a:["El micrófono se apagó.","Cambió la señal del receptor, no la emisión real.","Se eliminó físicamente el ruido."],c:1},
 {id:"duración",q:"Una persona escucha un ruido moderado por horas y otra uno intenso por un instante. Antes de comparar riesgos, ¿qué necesitas?",a:["Medición acústica adecuada, duración y condiciones de exposición.","Sólo saber cuál llegó a rojo.","Únicamente la sensación subjetiva."],c:0}
 ]};
@@ -191,7 +192,7 @@ $("#eppToggle").onclick=()=>{
 $("#technical").onclick=()=>{toast("Entrada nativa: "+num(state.level)+" dBFS RMS · pico "+num(state.peakDbfs)+" dBFS · "+state.inputLabel.slice(0,35)+". Escala relativa, no dBA.")};
 function renderPanel(){
 if(state.mode==="lesson"){renderLesson();return}
-$("#panel").classList.add("open");
+$("#panel").classList.remove("lessonMode");$("#panel").classList.add("open");
 $("#panelTitle").textContent="Audio por audífonos";
 if(state.mode==="audio"){
 $("#panelBody").innerHTML=
@@ -321,7 +322,7 @@ $("#export").onclick=()=>{
  const a=document.createElement("a");a.href=u;a.download="echoes-"+(is2D?"control":"lente")+".json";a.click();setTimeout(()=>URL.revokeObjectURL(u),10000);
 };
 function renderLesson(){
- state.mode="lesson";$("#panel").classList.add("open");
+ state.mode="lesson";$("#panel").classList.add("lessonMode");$("#panel").classList.add("open");
  $("#panelTitle").textContent="Recorrido educativo";
  const st=state.lessonStage;
  let s='<div class="lesson-progress"><span style="width:'+((st+1)/3*100)+'%"></span></div><p class="small">ETAPA '+(st+1)+' / 3 · '+(is2D?"PANEL 2D":"LENTE")+'</p>';
@@ -337,8 +338,8 @@ function renderLesson(){
   '<p class="small" id="lessonPpeStatus">Tapón virtual: '+(state.intervention==="ppe"?"activado":"desactivado")+'</p><button class="lesson-next" id="lessonNext">Continuar →</button>';
  }
  if(st===2){
-  s+='<div class="lesson-heading">3 · Decidir</div><p>Una bocina que puedes controlar produce ruido molesto. ¿Qué medida reduce su emisión antes de recurrir al receptor?</p>'+
-  '<div class="lesson-buttons"><button data-decision="0">Reducir el volumen de la fuente</button><button data-decision="1">Activar sólo EPP virtual</button><button data-decision="2">Cambiar el indicador de color</button></div>'+
+  s+='<div class="lesson-heading">3 · Decidir</div><p>Una bocina produce ruido molesto y puedes bajar su volumen sin consecuencias. ¿Cuál medida actúa directamente sobre su emisión?</p>'+
+  '<div class="lesson-buttons"><button data-decision="0">Reducir el volumen de la fuente</button><button data-decision="1">Colocar una barrera entre fuente y persona</button><button data-decision="2">Utilizar un protector auditivo real ajustado</button></div>'+
   '<div id="lessonFeedback" hidden></div><button class="lesson-next" id="lessonNext" disabled>Terminar y evaluar →</button>';
  }
  $("#panelBody").innerHTML=s;
