@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071722"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<title>ECHOES · Lente acústico</title>
+<style>
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color:#f0fffc;background:#081923}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}button,input{font:inherit}button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid #75f3d5;outline-offset:2px}
+#app{position:relative;width:100%;height:100dvh;min-height:410px;overflow:hidden;isolation:isolate;background:radial-gradient(ellipse at 55% 42%,#275662,#061923 76%)}
+#camera,#ambientTint,#receiverTint,#particles{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+#camera{z-index:0;background:#1a3b46}#ambientTint{z-index:1;background:rgba(37,193,166,.10);mix-blend-mode:screen}
+#receiverTint{z-index:2;background:rgba(60,190,198,0);transition:background .3s}
+#particles{z-index:3}#vignette{position:absolute;z-index:4;inset:0;pointer-events:none;background:linear-gradient(#061923dd,transparent 27%,transparent 54%,#061923ec)}
+#split{display:none;position:absolute;top:0;bottom:0;left:50%;z-index:4;pointer-events:none;border-left:2px solid #fff9}
+#split span{position:absolute;top:48%;left:7px;font-size:9px;letter-spacing:.07em;white-space:nowrap;padding:6px;background:#0c3435cc;border-radius:6px}
+#split.on{display:block}
+#top{position:absolute;z-index:8;left:15px;right:15px;top:calc(env(safe-area-inset-top) + 13px);display:flex;align-items:center;gap:9px}
+.brand{font-size:19px;font-weight:850;letter-spacing:.17em;margin-right:auto}.brand span{color:#83f4d6}
+.round{background:#0d303bdc;border:1px solid #79bcaf76;border-radius:25px;color:#e6fff9;padding:10px 12px;font-size:11px;font-weight:750}
+.round.active{background:#127d76}
+#level{position:absolute;z-index:7;left:16px;top:calc(env(safe-area-inset-top) + 74px);font-size:11px;font-weight:750;color:#e4fbf5;display:flex;align-items:center;gap:7px;text-shadow:0 2px 7px #001}
+#dot{width:9px;height:9px;background:#b4b4b4;border-radius:50%}#dot.live{background:#7efadd;box-shadow:0 0 12px #76ffdf}
+#meter{position:absolute;z-index:8;right:15px;top:calc(env(safe-area-inset-top) + 85px);width:38px;background:#062431cf;border:1px solid #9fddd080;border-radius:23px;padding:11px 8px;display:flex;align-items:center;flex-direction:column;gap:8px;pointer-events:none;box-shadow:0 5px 22px #001a24a0}
+#meter small{font-size:8px;font-weight:760;color:#d4f2e7}
+#gradient{position:relative;width:13px;height:238px;border-radius:10px;background:linear-gradient(to top,#5fa9f4 0%,#8cdef2 18%,#5bdbb7 35%,#b5e57a 49%,#edcf6e 64%,#f49854 80%,#ed555c 100%);box-shadow:0 0 14px #a6e6d825}
+#pin{position:absolute;bottom:7%;left:-6px;width:25px;height:6px;background:white;border-radius:7px;border:1px solid #fff;box-shadow:0 0 12px white;transition:bottom .15s}
+#modeTitle{position:absolute;top:calc(env(safe-area-inset-top) + 113px);left:16px;z-index:6;font-size:10px;letter-spacing:.09em;color:#d3f5ed;text-shadow:0 2px 5px #001;max-width:65%}
+#quickCompare{position:absolute;z-index:7;right:53px;top:calc(env(safe-area-inset-top) + 108px);background:#0d3443cc;color:#e9fffa;border:1px solid #6cb9af7c;border-radius:20px;padding:9px;font-size:10px}
+#bottom{position:absolute;z-index:8;left:11px;right:11px;bottom:calc(env(safe-area-inset-bottom) + 12px)}
+#explain{font-size:11px;line-height:1.5;color:#ecfcf9;margin:0 10px 12px;text-shadow:0 1px 7px #001;max-width:80%}
+#dock{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-width:350px;margin:0 auto;border:1px solid #7abeb362;background:#071f2cd9;border-radius:18px;padding:8px;backdrop-filter:blur(18px)}
+#dock button{background:transparent;color:#c2d9d8;border:0;border-radius:12px;min-height:55px;font-size:10px;font-weight:760;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center}
+#dock b{font-size:23px;font-weight:500}#dock button.on{color:#8cffe0;background:#27938255}
+#panel{display:none;position:absolute;z-index:9;bottom:calc(env(safe-area-inset-bottom) + 105px);left:12px;right:12px;max-width:450px;margin:auto;background:#0a2a36f2;border:1px solid #83c9bd85;border-radius:18px;padding:14px 15px;box-shadow:0 12px 35px #000b;max-height:51dvh;overflow:auto;backdrop-filter:blur(20px)}
+#panel.open{display:block}#panelHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}#panelTitle{font-size:15px;font-weight:800}#closePanel{border:0;color:#e5fff9;background:#2a5056;border-radius:12px;padding:5px 12px}
+#panel p{font-size:11px;line-height:1.5;color:#bbded9;margin:8px 0}#panel strong{color:#dbfff7}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:7px}.options button,.action{border:1px solid #6b9896;background:#193e48;color:#effffb;border-radius:10px;padding:11px 9px;font-size:11px;font-weight:740}
+.options button.selected,.action.primary{background:#0d766f;border-color:#80f1d8}
+.line{display:flex;gap:9px;align-items:center;justify-content:space-between;margin:10px 0}.line label{font-size:11px}.line input[type=range]{width:60%;accent-color:#70edd0}
+#headphonesCheck{width:19px;height:19px;accent-color:#71eace;margin-right:7px}
+.small{font-size:10px;color:#bfdfda}
+#warning{font-size:10px;line-height:1.55;background:#493626b9;border:1px solid #d8b88a77;color:#ffeacf;border-radius:10px;padding:10px;margin-top:10px}
+#mutebtn{display:none;position:absolute;z-index:12;top:calc(env(safe-area-inset-top) + 162px);right:55px;border:1px solid #ffbea2;background:#854639;color:white;border-radius:24px;font-size:11px;font-weight:800;padding:10px}
+#mutebtn.on{display:block}
+#intro,#survey{position:absolute;inset:0;z-index:14;background:radial-gradient(ellipse at 50% 15%,#20515b,#061521 78%);display:flex;align-items:center;justify-content:center;padding:25px}
+.modal{max-width:410px;width:100%;max-height:94dvh;overflow:auto}.eyebrow{font-size:10px;letter-spacing:.17em;font-weight:780;color:#97f9e1}
+.modal h1{font-size:clamp(34px,9vw,49px);letter-spacing:-.055em;line-height:1.04;margin:10px 0 15px}
+.modal p{font-size:13px;line-height:1.55;color:#bed9d6}
+.big{border:1px solid #7ef2d8;background:#087e77;border-radius:13px;color:white;font-weight:780;padding:15px;font-size:14px;width:100%;margin-top:12px}
+.secondary{border:1px solid #558a8c;background:#1a3d47;border-radius:12px;color:white;padding:12px;font-size:12px;width:100%;margin-top:8px}
+#introWarn{padding:11px;border-left:3px solid #ecb66a;background:#59402a61;font-size:11px;line-height:1.5;color:#fce5c8;border-radius:8px}
+#survey{display:none;background:#071923f9;z-index:15}
+#question{font-size:19px;font-weight:800;line-height:1.25;margin:13px 0 18px}
+#answers{display:grid;gap:8px}#answers button{text-align:left;background:#193d48;border:1px solid #5b9d9b;border-radius:12px;padding:14px;color:white;font-size:12px}
+#answers button.sel{background:#11786d}
+#result{display:none}.resultGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:18px 0}.resultGrid div{background:#173c45;border-radius:12px;padding:15px}.resultGrid b{display:block;font-size:27px;margin-top:7px;color:#92ffe2}
+#toast{display:none;position:absolute;z-index:13;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 197px);background:#1b4953ed;color:#f4fffa;border:1px solid #7be9d2;border-radius:12px;padding:11px;font-size:11px;line-height:1.5}#toast.on{display:block}
+@media(max-height:650px){#gradient{height:158px}#meter{top:calc(env(safe-area-inset-top) + 72px)}#modeTitle{top:calc(env(safe-area-inset-top) + 104px)}#quickCompare{top:calc(env(safe-area-inset-top) + 103px)}#mutebtn{top:calc(env(safe-area-inset-top) + 134px)}#eppToggle{top:calc(env(safe-area-inset-top) + 158px)}}
+/* Receptor: a single accessible ear button opposite the spectrum */
+#eppToggle{position:absolute;z-index:8;left:15px;top:calc(env(safe-area-inset-top) + 178px);width:62px;height:68px;border:1px solid #89cec18c;border-radius:19px;background:#0b3443d9;color:#eafff9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;box-shadow:0 5px 23px #0007;backdrop-filter:blur(13px)}
+#eppToggle svg{width:31px;height:34px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#eppToggle .plug{opacity:0;transition:opacity .18s;fill:#ffd48a;stroke:#fff1d4}
+#eppToggle.active{border-color:#a1ffe3;background:#0d7d73e8;box-shadow:0 0 0 2px #93f9db30,0 5px 22px #0007}
+#eppToggle.active .plug{opacity:1}
+#eppLabel{font-size:9px;font-weight:800;white-space:nowrap;color:#e1fff8}
+#eppToggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media(max-height:650px){#eppToggle{width:55px;height:61px;top:calc(env(safe-area-inset-top) + 158px)}}
+</style></head>
+<body><main id="app">
+<video id="camera" playsinline autoplay muted aria-label="Cámara ambiental"></video><div id="ambientTint"></div><div id="receiverTint"></div><canvas id="particles"></canvas><div id="vignette"></div>
+<div id="split"><span>PERCEPCIÓN SIMULADA</span></div>
+<div id="top"><div class="brand">ECHOES<span>.</span></div><button class="round" id="reduced">◌ Efectos suaves</button><button class="round" id="technical">⚙</button></div>
+<div id="level"><i id="dot"></i><span id="micStatus">Esperando permisos</span></div>
+<div id="modeTitle">LENTE ACÚSTICO · AMBIENTE</div>
+<div id="meter" role="img" aria-label="Escala cromática de energía de la señal digital nativa dBFS, de azul a rojo; no expresa seguridad auditiva"><small>MIC</small><div id="gradient"><i id="pin"></i></div></div>
+<button id="eppToggle" type="button" aria-pressed="false" aria-label="Audio plano. Activar EPP virtual" title="Alternar EPP virtual">
+<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 32c-1-2-3-5-3-12 0-10 7-17 17-17 10 0 17 7 17 17 0 6-3 11-8 15-4 3-5 6-6 9-1 4-6 5-10 2-2-2-3-4-3-7"/><path d="M20 25c-2-7 2-13 9-13 6 0 10 4 10 10 0 5-4 8-8 11"/><path d="M23 28c-2-4 0-7 4-8 4-1 7 2 7 5"/><circle class="plug" cx="29" cy="27" r="5"/></svg>
+<span id="eppLabel">Plano</span></button>
+<button id="quickCompare">◫ Comparar</button><button id="mutebtn">■ Silenciar</button>
+<div id="bottom"><div id="explain">El micrófono transforma el ambiente en color. Los cambios visuales representan el sonido, no sus efectos fisiológicos.</div>
+<nav id="dock"><button data-mode="audio"><b>♫</b>Escuchar</button><button data-mode="study"><b>✓</b>Evaluar</button></nav></div>
+<section id="panel"><div id="panelHead"><span id="panelTitle">Controles</span><button id="closePanel" aria-label="Cerrar controles">×</button></div><div id="panelBody"></div></section>
+<div id="toast" role="status"></div>
+<section id="intro"><div class="modal"><div class="eyebrow">ECHOES · LENTE ACÚSTICO · 1.3 BETA</div><h1>Haz visible<br>lo que escuchas.</h1>
+<p>Observa el ruido que capta tu teléfono como color y movimiento. Después utiliza audífonos para experimentar cómo se transforma la percepción del sonido.</p>
+<p>Se solicitarán permisos de cámara y micrófono. La escucha se inicia por separado y sólo cuando tú la actives.</p>
+<div id="introWarn">Prueba en un lugar tranquilo, sin tráfico ni maquinaria. La escala es relativa; no determina condiciones seguras. Se utiliza la intensidad nativa del micrófono en dBFS, sin conversión a decibeles acústicos (dBA).</div>
+<button id="start" class="big">Iniciar cámara + micrófono</button><button class="secondary" id="startStudy">Primero: evaluación inicial opcional</button>
+</div></section>
+<section id="survey"><div class="modal"><div id="quiz"><div class="eyebrow" id="phaseTitle">EVALUACIÓN</div><p id="progress"></p><div id="question"></div><div id="answers"></div><button id="next" class="big" disabled>Continuar</button></div><div id="result"><div class="eyebrow">COMPARACIÓN DE RESPUESTAS</div><h1>¿Qué aprendiste?</h1><p>Porcentaje de respuestas correctas, no reducción del ruido.</p><div class="resultGrid"><div>Antes<b id="preScore">—</b></div><div>Después<b id="postScore">—</b></div></div><p id="comparison"></p><button class="big" id="export">Exportar sesión JSON</button><button class="secondary" id="closeStudy">Volver al lente</button></div></div></section>
+</main>
+<script>
+(()=>{
+"use strict";
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const qs=[
+{q:"Si un filtro hace que escuches menos ruido, ¿la fuente necesariamente produce menos?",a:["Sí, el sonido exterior desaparece","No, puede cambiar sólo lo que llega a los audífonos","Depende del color de la pantalla"],c:1},
+{q:"¿Qué sería controlar el sonido en su origen?",a:["Disminuir el volumen de una máquina o equipo","Usar únicamente audífonos","Hacer que la imagen se vuelva azul"],c:0},
+{q:"¿La duración importa para evaluar la exposición al ruido?",a:["Sí, además de otros factores","No, sólo importa el sonido instantáneo","Sólo si es música"],c:0},
+{q:"¿Un filtro digital equivale a un protector auditivo certificado?",a:["Sí, con cualquier audífono","No, es sólo una simulación","Sí, cuando cambia a verde"],c:1}
+];
+const state={started:false,mic:false,micStarting:false,mode:"observe",intervention:"none",compare:false,reduced:matchMedia("(prefers-reduced-motion:reduce)").matches,
+listen:false,headphones:false,level:-100,smoothed:0,peakDbfs:-100,volume:38,outputStatus:"No comprobada",
+step:"pre",index:0,selected:null,pre:[],post:[],events:[],inputLabel:"No identificado"};
+let media=null,videoStream=null,audioCtx=null,source=null,analyser=null,timeBuf=null,preamp=null,hp=null,lp=null,limiter=null,softclip=null,output=null;
+let last=0,phase=0,lastUI=0,lastToast;
+const log=(type,value)=>state.events.push({t:Math.round(performance.now()),type,value:String(value||"")});
+function toast(s){const t=$("#toast");t.textContent=s;t.classList.add("on");clearTimeout(lastToast);lastToast=setTimeout(()=>t.classList.remove("on"),4200)}
+const num=x=>Number.isFinite(x)?x.toFixed(0):"—";
+function updateInfo(){
+$("#dot").classList.toggle("live",state.mic);
+$("#micStatus").textContent=state.mic?"Micrófono activo":"Micrófono sin señal";
+const modeName=state.intervention==="ppe"?"LENTE ACÚSTICO · EPP VIRTUAL":state.mode==="audio"?"LENTE ACÚSTICO · AUDIO":"LENTE ACÚSTICO · AMBIENTE";
+$("#modeTitle").textContent=modeName;
+$("#explain").textContent=state.intervention!=="none"?
+"El indicador de color sigue mostrando la entrada ambiental. Sólo cambia la representación y el audio procesado.":"El nivel nativo en dBFS alimenta el color y las partículas. Acércate a una fuente estable para observar el cambio. No indica seguridad auditiva.";
+$("#mutebtn").classList.toggle("on",state.listen);
+const virtualPpe=state.intervention==="ppe";
+$("#eppToggle").classList.toggle("active",virtualPpe);
+$("#eppToggle").setAttribute("aria-pressed",String(virtualPpe));
+$("#eppToggle").setAttribute("aria-label",virtualPpe?"EPP virtual activado. Volver a audio plano":"Audio plano. Activar EPP virtual");
+$("#eppLabel").textContent=virtualPpe?"EPP virtual":"Plano";
+allButtons();
+}
+function allButtons(){document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===state.mode))}
+function setMode(m){if(m==="study"){beginQuiz("post");return}
+if(m!=="audio")return;
+if($("#panel").classList.contains("open")){$("#panel").classList.remove("open");state.mode="observe";updateInfo();return}
+state.mode="audio";renderPanel();updateInfo();}
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
+$("#closePanel").onclick=()=>$("#panel").classList.remove("open");
+$("#reduced").onclick=()=>{state.reduced=!state.reduced;$("#reduced").classList.toggle("active",state.reduced)};
+$("#quickCompare").onclick=()=>{state.compare=!state.compare;$("#split").classList.toggle("on",state.compare);$("#quickCompare").classList.toggle("active",state.compare)};
+$("#mutebtn").onclick=()=>stopListen();
+$("#eppToggle").onclick=()=>{
+ const enable=state.intervention!=="ppe";
+ state.intervention=enable?"ppe":"none";
+ log("epp_rapido",enable?"virtual_on":"off");
+ updateProcessing();
+ updateInfo();
+ toast(enable?"EPP virtual activo: audio atenuado digitalmente. El ruido ambiental no disminuye.":"Audio plano: sin atenuación virtual. La escucha sigue bajo tu control.");
+};
+$("#technical").onclick=()=>{toast("Entrada nativa: "+num(state.level)+" dBFS RMS · pico "+num(state.peakDbfs)+" dBFS · "+state.inputLabel.slice(0,35)+". Escala relativa, no dBA.")};
+function renderPanel(){
+$("#panel").classList.add("open");
+$("#panelTitle").textContent="Audio por audífonos";
+if(state.mode==="audio"){
+$("#panelBody").innerHTML=
+'<div class="line"><label><input id="headphonesCheck" type="checkbox" '+(state.headphones?'checked':'')+'>Tengo audífonos conectados y el volumen del sistema bajo</label></div>'+
+'<div class="options"><button id="listenBtn" class="'+(state.listen?'selected':'')+'">'+(state.listen?'■ Detener escucha':'▶ Escuchar el micrófono')+'</button><button id="testBtn">♪ Probar salida (tono breve)</button></div>'+
+'<div class="line"><label>Volumen interno <b id="volumeText">'+state.volume+'%</b></label><input id="volumeRange" type="range" min="0" max="100" step="2" value="'+state.volume+'"></div>'+
+'<p>Entrada: <b id="micLabel"></b> · <b id="liveSignal">Sin lectura</b></p><p>Salida: <b id="outputRoute">Safari no la confirma</b>. Si se oye el tono pero no el entorno, revisaremos la captura. Si no se oye el tono, revisa ruta Bluetooth y volumen del iPhone.</p>'+
+'<div id="warning">No activa ni controla ANC. No garantiza aislamiento ni un nivel seguro en el oído. Si aparecen ecos, silbidos o un sonido molesto, pulsa «Silenciar» inmediatamente. Evita usarlo junto a maquinaria.</div>';
+$("#micLabel").textContent=state.inputLabel;
+if($("#liveSignal"))$("#liveSignal").textContent=state.mic?num(state.level)+" dBFS":"sin micrófono";
+$("#headphonesCheck").onchange=e=>{state.headphones=e.target.checked;if(!state.headphones)stopListen()};
+$("#listenBtn").onclick=()=>state.listen?stopListen():startListen();
+$("#testBtn").onclick=testOutput;
+$("#volumeRange").oninput=e=>{state.volume=Number(e.target.value);$("#volumeText").textContent=state.volume+"%";updateProcessing()};
+}
+}
+function graph(){if(!audioCtx||!output)return;
+const modes={none:{hp:65,lp:15500,f:1},ppe:{hp:240,lp:1600,f:.40},low:{hp:480,lp:14000,f:.80},muffled:{hp:65,lp:950,f:.65}};
+const m=modes[state.intervention]||modes.none;
+hp.frequency.setTargetAtTime(m.hp,audioCtx.currentTime,.05);
+lp.frequency.setTargetAtTime(m.lp,audioCtx.currentTime,.05);
+const target=state.listen&&state.headphones?Math.min(.42,state.volume/100*.42)*m.f:0;
+output.gain.setTargetAtTime(target,audioCtx.currentTime,.05);
+}
+function updateProcessing(){graph()}
+function stopListen(){
+state.listen=false;
+if(audioCtx&&output){output.gain.cancelScheduledValues(audioCtx.currentTime);output.gain.setValueAtTime(0,audioCtx.currentTime)}
+updateInfo();if(state.mode==="audio"&&$("#panel").classList.contains("open"))renderPanel();
+}
+async function startListen(){
+if(!state.headphones){toast("Confirma audífonos conectados y volumen bajo.");return}
+if(!state.mic||!audioCtx){toast("El micrófono todavía no está disponible.");return}
+try{await audioCtx.resume();if(audioCtx.state!=="running"){toast("Safari bloqueó la salida. Toca de nuevo Escuchar.");return}
+state.listen=true;updateProcessing();updateInfo();renderPanel();toast("Escucha activada. Prueba hablando bajo o chasqueando los dedos lejos del micrófono.");
+}catch(e){toast("Error de salida: "+e.message)}
+}
+async function testOutput(){
+if(!state.headphones){toast("Confirma que tienes audífonos y volumen del sistema bajo.");return}
+if(!audioCtx){toast("Inicia el micrófono primero.");return}
+try{await audioCtx.resume();if(audioCtx.state!=="running"){toast("Salida suspendida en Safari.");return}
+const osc=audioCtx.createOscillator();const g=audioCtx.createGain();osc.frequency.value=530;osc.type="sine";
+g.gain.setValueAtTime(0,audioCtx.currentTime);g.gain.linearRampToValueAtTime(.045,audioCtx.currentTime+.035);
+g.gain.setValueAtTime(.045,audioCtx.currentTime+.18);g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.28);
+osc.connect(g);g.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+.30);
+toast("Tono de prueba enviado. ¿Lo escuchaste por los audífonos?");
+}catch(e){toast("No se pudo probar la salida: "+e.message)}
+}
+function makeSoftclip(context){const node=context.createWaveShaper(),curve=new Float32Array(2048);for(let i=0;i<curve.length;i++){const x=i/(curve.length-1)*2-1;curve[i]=Math.tanh(x*1.8)/Math.tanh(1.8)}node.curve=curve;node.oversample="2x";return node}
+async function start(){
+if(state.started)return;
+state.started=true;$("#intro").style.display="none";
+try{if(navigator.audioSession)navigator.audioSession.type="auto"}catch(_){ }
+try{
+audioCtx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});void audioCtx.resume().catch(()=>{});
+}catch(e){toast("Audio Web no disponible: "+e.message)}
+if(!navigator.mediaDevices?.getUserMedia){toast("Safari no permite cámara y micrófono en esta página.");return}
+try{
+media=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+$("#camera").srcObject=media;await $("#camera").play().catch(()=>{});
+}catch(e){
+toast("No se pudieron iniciar juntos cámara y micrófono: "+e.message);
+try{media=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}catch(e2){toast("Micrófono no disponible: "+e2.message)}
+}
+if(media?.getAudioTracks().length&&audioCtx){
+try{if(navigator.audioSession)navigator.audioSession.type="play-and-record"}catch(_){ }
+try{
+source=audioCtx.createMediaStreamSource(media);analyser=audioCtx.createAnalyser();analyser.fftSize=2048;
+timeBuf=new Uint8Array(analyser.fftSize);source.connect(analyser);
+preamp=audioCtx.createGain();preamp.gain.value=6;
+hp=audioCtx.createBiquadFilter();hp.type="highpass";lp=audioCtx.createBiquadFilter();lp.type="lowpass";
+limiter=audioCtx.createDynamicsCompressor();limiter.threshold.value=-22;limiter.ratio.value=18;limiter.attack.value=.003;limiter.release.value=.18;
+softclip=makeSoftclip(audioCtx);output=audioCtx.createGain();output.gain.value=0;
+source.connect(preamp);preamp.connect(hp);hp.connect(lp);lp.connect(limiter);limiter.connect(softclip);softclip.connect(output);output.connect(audioCtx.destination);
+state.inputLabel=media.getAudioTracks()[0].label||"Micrófono del dispositivo";
+state.mic=true;updateProcessing();toast("Micrófono activo. Salida apagada hasta que pulses Escuchar.");
+}catch(e){toast("No se pudo procesar audio: "+e.message)}
+}
+updateInfo();
+}
+$("#start").onclick=()=>start();
+$("#startStudy").onclick=()=>{beginQuiz("pre")};
+function beginQuiz(which){state.step=which;state.index=0;state.selected=null;$("#survey").style.display="flex";$("#quiz").style.display="block";$("#result").style.display="none";drawQuiz()}
+function drawQuiz(){const q=qs[state.index];$("#phaseTitle").textContent=state.step==="pre"?"ANTES · CONOCIMIENTO":"DESPUÉS · CONOCIMIENTO";
+$("#progress").textContent=(state.index+1)+" / "+qs.length;$("#question").textContent=q.q;$("#answers").innerHTML="";
+q.a.forEach((txt,i)=>{const b=document.createElement("button");b.textContent=txt;b.classList.toggle("sel",state.selected===i);
+b.onclick=()=>{state.selected=i;$("#next").disabled=false;document.querySelectorAll("#answers button").forEach((el,j)=>el.classList.toggle("sel",j===i))};$("#answers").appendChild(b)});
+$("#next").disabled=true;$("#next").textContent=state.index===qs.length-1?(state.step==="pre"?"Iniciar lente":"Ver resultados"):"Siguiente";
+}
+$("#next").onclick=async()=>{
+if(state.selected===null)return;
+(state.step==="pre"?state.pre:state.post).push(state.selected);
+log("respuesta_"+state.step,state.index+1);
+state.index++;state.selected=null;
+if(state.index<qs.length){drawQuiz();return}
+if(state.step==="pre"){$("#survey").style.display="none";await start();return}
+const calc=a=>a.reduce((n,v,i)=>n+(v===qs[i].c?1:0),0);
+const a=calc(state.pre),b=calc(state.post);
+$("#quiz").style.display="none";$("#result").style.display="block";
+$("#preScore").textContent=state.pre.length===qs.length?a*25+"%":"Sin prueba";
+$("#postScore").textContent=b*25+"%";
+$("#comparison").textContent=state.pre.length===qs.length?"Variación: "+((b-a)*25>0?"+":"")+(b-a)*25+" puntos porcentuales. Una sesión no demuestra eficacia causal.":"No hubo evaluación inicial; sólo se registra el resultado posterior.";
+};
+$("#closeStudy").onclick=()=>$("#survey").style.display="none";
+$("#export").onclick=()=>{
+const data={version:"1.0-beta",pre:state.pre,post:state.post,actions:state.events,measurementUnit:"dBFS",calibration:"ninguna",containsAudioOrVideo:false,disclaimer:"Resultados de comprensión, no medición de exposición"};
+const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="echoes-experiencia.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)
+};
+const canvas=$("#particles"),ctx=canvas.getContext("2d");let W=0,H=0;const dots=Array.from({length:130},(_,i)=>({x:(i*.618034)%1,y:(i*.414214)%1,phase:i*1.91,size:1+i%3}));
+function resize(){W=innerWidth;H=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener("resize",resize);resize();
+const palette=[[86,163,250],[87,224,215],[108,219,134],[245,211,108],[251,153,77],[242,75,91]];
+function color(x){const f=clamp(x,0,1)*5,i=Math.min(4,Math.floor(f)),t=f-i;return palette[i].map((a,n)=>Math.round(a+(palette[i+1][n]-a)*t))}
+function tick(t){
+const dt=Math.min(50,t-last||16);last=t;phase+=dt*.001;
+if(state.mic&&analyser){analyser.getByteTimeDomainData(timeBuf);let s=0,peak=0;for(let i=0;i<timeBuf.length;i++){const v=(timeBuf[i]-128)/128;s+=v*v;peak=Math.max(peak,Math.abs(v))}
+state.level=20*Math.log10(Math.max(.00001,Math.sqrt(s/timeBuf.length)));
+state.peakDbfs=20*Math.log10(Math.max(.00001,peak));
+if(state.listen&&state.level>-3){stopListen();toast("Entrada saturada: escucha silenciada.")}}
+// ECHOES 1.1: amplify the visual contrast of *native digital* mic changes.
+ // -58 dBFS sits near the cool end; -22 dBFS near the warm end.
+ // No dBFS-to-dBA conversion, safety threshold, or inferred source position.
+ const base=clamp((state.level+58)/36,0,1);
+ const transient=state.mic?clamp((state.peakDbfs-state.level-13)/25,0,1)*.12:0;
+ const target=state.mic?clamp(Math.pow(base,.94)+transient,0,1):.10;
+ // Fast attack (~55 ms), slower release (~380 ms). Approaching a source
+ // should be visually noticeable *when* the captured signal actually rises.
+ const envelopeMs=target>state.smoothed?55:380;
+ const alpha=1-Math.exp(-dt/envelopeMs);
+ state.smoothed+=(target-state.smoothed)*alpha;
+const [r,g,b]=color(state.smoothed);
+ // Warm-end accent: increasing density, contrast and peripheral haze (no strobing).
+ const hot=clamp((state.smoothed-.61)/.39,0,1);
+ const opacity=clamp(.08+state.smoothed*.32+hot*.18,0,.59);
+ $("#ambientTint").style.background="rgba("+r+","+g+","+b+","+opacity+")";
+ const intervention=state.intervention!=="none";
+ // Receptor layer is a perceptual metaphor. Original input and meter remain unchanged.
+ const amount=intervention?.10+(.20*state.smoothed):0;
+ $("#receiverTint").style.background="rgba(66,193,193,"+amount+")";
+ $("#receiverTint").style.clipPath=state.compare?"inset(0 0 0 50%)":"none";
+ const redEdge=hot*(state.reduced?.16:.30);
+ $("#vignette").style.background=
+ "radial-gradient(ellipse at 50% 47%,transparent 39%,rgba(180,38,55,"+redEdge+") 100%),"+
+ "linear-gradient(#061923dd,transparent 27%,transparent 54%,#061923ec)";
+ $("#pin").style.bottom=(3+state.smoothed*94)+"%";
+ if(t-lastUI>250){
+  lastUI=t;
+  $("#micStatus").textContent=state.mic?"Captando · nivel digital":"Micrófono sin señal";
+  if($("#liveSignal"))$("#liveSignal").textContent=state.mic?num(state.level)+" dBFS":"sin señal";
+ }
+ ctx.clearRect(0,0,W,H);
+ // Bound density to allocated particle count to avoid undefined positions.
+ const count=state.reduced?Math.round(9+17*state.smoothed+5*hot):Math.round(18+72*state.smoothed+26*hot);
+ for(let i=0;i<count;i++){
+  const p=dots[i],speed=state.reduced?.12:1+hot*.25;
+  const px=p.x*W+Math.sin(phase*speed+p.phase)*(14+hot*14);
+  const py=p.y*H+Math.cos(phase*speed+p.phase)*(18+hot*17);
+  const densityAlpha=clamp(.11+state.smoothed*.46+hot*.18,0,.82);
+  const radius=p.size*(.7+state.smoothed*1.95+hot*.5);
+  ctx.beginPath();ctx.arc(px,py,radius,0,Math.PI*2);
+  ctx.fillStyle="rgba("+r+","+g+","+b+","+densityAlpha+")";ctx.fill();
+ }
+ const ringCount=state.reduced?3:5+(hot>.72?1:0);
+ for(let j=0;j<ringCount;j++){
+  const speed=state.reduced?.015:.12+hot*.045;
+  const v=(j/ringCount+phase*speed)%1,rr=(.13+v*.77)*Math.min(W,H);
+  const pulse=state.reduced?1:1+hot*.045*Math.sin(phase*3.3+j);
+  ctx.beginPath();
+  ctx.ellipse(W*.52,H*.46,rr*pulse,rr*.65*pulse,0,0,Math.PI*2);
+  ctx.strokeStyle="rgba("+r+","+g+","+b+","+(1-v)*(.12+state.smoothed*.46+hot*.23)+")";
+  ctx.lineWidth=1+state.smoothed*2.7+hot*1.7;ctx.stroke();
+ }
+ requestAnimationFrame(tick)
+}
+requestAnimationFrame(tick);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopListen()});
+if(navigator.mediaDevices?.addEventListener)navigator.mediaDevices.addEventListener("devicechange",()=>{if(state.listen){stopListen();toast("Cambió un dispositivo de audio; reproducción silenciada. Confirma la ruta Bluetooth antes de continuar.")}});
+window.addEventListener("pagehide",()=>{stopListen();media?.getTracks().forEach(t=>t.stop());videoStream?.getTracks().forEach(t=>t.stop());try{if(navigator.audioSession){navigator.audioSession.type="playback";navigator.audioSession.type="auto"}}catch(_){}});
+updateInfo();
+})();
+</script></body></html>
