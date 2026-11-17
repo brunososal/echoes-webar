@@ -145,7 +145,7 @@ listen:false,headphones:false,level:-100,smoothed:0,peakDbfs:-100,volume:38,outp
 step:"pre",index:0,selected:null,pre:[],post:[],preTimes:[],postTimes:[],events:[],inputLabel:"No identificado",guided:false,lessonStage:0,lessonObservation:null,lessonDecision:null,qStart:0};
 let media=null,videoStream=null,audioCtx=null,source=null,analyser=null,timeBuf=null,preamp=null,hp=null,lp=null,limiter=null,softclip=null,output=null;
 let last=0,phase=0,lastUI=0,lastToast;
-const log=(type,value)=>state.events.push({t:Math.round(performance.now()),type,value:String(value||"")});
+const log=(type,value)=>state.events.push({t:Math.round(performance.now()),type,value:value===undefined?null:value});
 function toast(s){const t=$("#toast");t.textContent=s;t.classList.add("on");clearTimeout(lastToast);lastToast=setTimeout(()=>t.classList.remove("on"),4200)}
 const num=x=>Number.isFinite(x)?x.toFixed(0):"—";
 function updateInfo(){
@@ -154,16 +154,17 @@ $("#micStatus").textContent=state.mic?"Micrófono activo":"Micrófono sin señal
 const modeName=state.intervention==="ppe"?"RECEPTOR · EPP VIRTUAL":state.mode==="audio"?"AUDIO · RUTA DE ESCUCHA":is2D?"INFORMACIÓN ACÚSTICA · 2D":"LENTE ACÚSTICO · SUPERPOSICIÓN";
 $("#modeTitle").textContent=modeName;
 $("#explain").textContent=state.intervention!=="none"?
-"El indicador de color sigue mostrando la entrada ambiental. Sólo cambia la representación y el audio procesado.":"El nivel nativo en dBFS alimenta el color y las partículas. Acércate a una fuente estable para observar el cambio. No indica seguridad auditiva.";
+"La entrada ambiental sigue igual; sólo cambia la representación del receptor y la salida digital, si la activas.":"El micrófono aporta datos digitales relativos (dBFS), no una dosis acústica ni una medida de seguridad. Intensidad y duración importan.";
 $("#mutebtn").classList.toggle("on",state.listen);
 const virtualPpe=state.intervention==="ppe";
 $("#eppToggle").classList.toggle("active",virtualPpe);
 $("#eppToggle").setAttribute("aria-pressed",String(virtualPpe));
 $("#eppToggle").setAttribute("aria-label",virtualPpe?"EPP virtual activado. Volver a audio plano":"Audio plano. Activar EPP virtual");
 $("#eppLabel").textContent=virtualPpe?"EPP virtual":"Plano";
+if(state.mode==="lesson"&&state.lessonStage===1&&$("#panel").classList.contains("open")){const p=$("#lessonPpeStatus");if(p)p.textContent=virtualPpe?"Tapón virtual: activado":"Tapón virtual: desactivado"}
 allButtons();
 }
-function allButtons(){document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===state.mode))}
+function allButtons(){document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===(state.mode==="lesson"?"study":state.mode)))}
 function setMode(m){
 if(m==="study"){
  if(state.mode==="lesson"&&$("#panel").classList.contains("open")){$("#panel").classList.remove("open");state.mode="observe";updateInfo();return}
@@ -247,12 +248,12 @@ try{if(navigator.audioSession)navigator.audioSession.type="auto"}catch(_){ }
 try{
 audioCtx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});void audioCtx.resume().catch(()=>{});
 }catch(e){toast("Audio Web no disponible: "+e.message)}
-if(!navigator.mediaDevices?.getUserMedia){toast("Safari no permite cámara y micrófono en esta página.");return}
+if(!navigator.mediaDevices?.getUserMedia){toast("El navegador no permite captar el micrófono en esta página.");return}
 try{
 media=await navigator.mediaDevices.getUserMedia({video:is2D?false:{facingMode:{ideal:"environment"}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
 if(!is2D){$("#camera").srcObject=media;await $("#camera").play().catch(()=>{})}
 }catch(e){
-toast("No se pudieron iniciar juntos cámara y micrófono: "+e.message);
+toast((is2D?"Error al acceder al micrófono: ":"Error al iniciar cámara y micrófono: ")+e.message);
 try{media=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}catch(e2){toast("Micrófono no disponible: "+e2.message)}
 }
 if(media?.getAudioTracks().length&&audioCtx){
@@ -326,14 +327,14 @@ function renderLesson(){
  let s='<div class="lesson-progress"><span style="width:'+((st+1)/3*100)+'%"></span></div><p class="small">ETAPA '+(st+1)+' / 3 · '+(is2D?"PANEL 2D":"LENTE")+'</p>';
  if(st===0){
   s+='<div class="lesson-heading">1 · Descubrir</div><p>Prueba una fuente suave que puedas controlar o acerca el móvil ligeramente. Observa la respuesta del '+(is2D?"gráfico":"color y las ondas")+'. Nunca te acerques a fuentes intensas.</p>'+
-  '<div class="lesson-guide">El nivel es digital (dBFS), no un sonómetro calibrado: rojo no significa daño ni azul garantiza seguridad.</div>'+
+  '<div class="lesson-guide">La señal es digital (dBFS), no una medición dBA. Rojo no prueba daño ni azul garantiza seguridad. La duración también importa para valorar una exposición.</div>'+
   '<p>¿Percibiste un cambio?</p><div class="lesson-buttons"><button data-observed="si">Sí, fue perceptible</button><button data-observed="no">No, fue pequeño o no hubo señal</button></div><button class="lesson-next" id="lessonNext">Continuar →</button>';
  }
  if(st===1){
   s+='<div class="lesson-heading">2 · Distinguir</div><p>Toca la oreja flotante para activar EPP virtual. La entrada ambiental se mantiene; sólo se modifica el audio reproducido y su representación perceptiva.</p>'+
   '<div class="lesson-guide">El EPP virtual no es protección real. Para escuchar por audífonos debes autorizar la salida con volumen bajo.</div>'+
   (is2D?'':"<button class=\"action\" id=\"compareLesson\">Mostrar las dos capas</button>")+
-  '<p class="small">Tapón virtual: '+(state.intervention==="ppe"?"activado":"desactivado")+'</p><button class="lesson-next" id="lessonNext">Continuar →</button>';
+  '<p class="small" id="lessonPpeStatus">Tapón virtual: '+(state.intervention==="ppe"?"activado":"desactivado")+'</p><button class="lesson-next" id="lessonNext">Continuar →</button>';
  }
  if(st===2){
   s+='<div class="lesson-heading">3 · Decidir</div><p>Una bocina que puedes controlar produce ruido molesto. ¿Qué medida reduce su emisión antes de recurrir al receptor?</p>'+
@@ -347,7 +348,7 @@ function renderLesson(){
   state.lessonDecision=Number(b.dataset.decision);
   document.querySelectorAll("[data-decision]").forEach(x=>x.classList.toggle("chosen",x===b));
   const f=$("#lessonFeedback");f.hidden=false;
-  f.textContent=state.lessonDecision===0?"Correcto: cuando es viable, primero se controla la fuente. El filtro digital sólo cambia lo que reproduce ECHOES.":"No reduce la emisión en origen. Si puedes bajar de forma segura el volumen de esa fuente, reduces lo que emite.";
+  f.textContent=state.lessonDecision===0?"Correcto: bajar la emisión actúa en la fuente. Barreras y aislamiento actúan sobre la trayectoria; protectores ajustados actúan sobre el receptor. El filtro digital de ECHOES no equivale a ninguno de ellos.":"No reduce la emisión en origen. Bajar la fuente cuando es viable actúa primero; las barreras pueden actuar en la trayectoria y la protección auditiva real sobre el receptor.";
   $("#lessonNext").disabled=false;
  });
  $("#lessonNext").onclick=()=>{
