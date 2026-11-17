@@ -17,7 +17,7 @@ check('EPP remains a digital processing filter',lab.includes('ppe:{hp:240,lp:160
 check('2D comparator microphone-only',lab.includes('video:is2D?false:'));
 check('Guided learning is available',lab.includes('function renderLesson()')&&lab.includes('state.lessonStage'));
 check('Pre and post question sets are separate',lab.includes('pre:[')&&lab.includes('post:[')&&lab.includes('function questionBank()'));
-check('Consent and limits identified in interface',lab.includes('No es')&&lab.includes('sin conversión a decibeles acústicos'));
+check('Consent and limits identified in interface',lab.includes('id="introWarn"')&&lab.includes('dBFS')&&lab.includes('getUserMedia')&&lab.includes('No activa ni controla ANC'));
 check('Technical limits documented',method.includes('no usa anclaje espacial 3D')&&method.includes('no se')&&readme.includes('dBFS'));
 check('Research condition separately recorded',lab.includes('condition:is2D?"2d":"lente_camara"'));
 check('No automated screenshots presented as iPhone measurements',readme.includes('prueba')&&method.includes('no'));
