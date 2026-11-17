@@ -1,0 +1,47 @@
+name: ECHOES | QA visual y evidencia de sitio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "lab.html"
+      - "scripts/qa-evidence.mjs"
+      - ".github/workflows/echoes-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: echoes-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-qa:
+    name: Inspección de sitio, app y repositorio
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Obtener repositorio
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Esperar publicación de GitHub Pages
+        run: sleep 25
+      - name: Ejecutar agente QA y tomar capturas del sitio publicado
+        run: node scripts/qa-evidence.mjs
+      - name: Publicar evidencias y diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: echoes-capturas-publicadas
+          path: evidence/automated/
+          retention-days: 30
+          if-no-files-found: warn
