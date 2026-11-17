@@ -163,3 +163,18 @@ La alternativa 2D comparte señal digital, guion, decisión, audio opcional y ev
 - La escala es relativa y no certifica dBA, dosis auditiva ni seguridad; no estima exposición por duración.
 - La oreja aplica un **filtro de audio digital** a la reproducción expresamente habilitada y muestra un estado perceptivo ilustrativo; no cambia la señal de entrada ni protege físicamente.
 - No se han hecho pruebas con usuarios, comparación causal, ajuste de EPP ni verificación física de esta versión en iPhone.
+
+## Evidencia de sitio publicado y auditorías automáticas
+
+**Sitio público:** https://brunososal.github.io/echoes-webar/  
+**Repositorio:** https://github.com/brunososal/echoes-webar  
+**Ejecuciones de QA:** https://github.com/brunososal/echoes-webar/actions
+
+Dos comprobaciones automatizadas se ejecutan mediante GitHub Actions al actualizar la interfaz o sus scripts:
+
+1. **QA de navegador — `scripts/qa-evidence.mjs`**: abre el sitio publicado y el repositorio GitHub desde Chromium, verifica funciones básicas del lente y del comparador 2D, y entrega capturas PNG e informe JSON como artefacto `echoes-capturas-publicadas`.
+2. **QA de coherencia técnica y académica — `scripts/qa-contract.mjs`**: comprueba sintaxis, estructura DOM, enlace al sitio y repositorio, ausencia de dBA inventados, separación de EPP virtual, inicio silenciado, condiciones 2D/visor y estructura de aprendizaje; guarda el informe `echoes-revision-de-coherencia`.
+
+Son **rutinas de auditoría automatizada**, no agentes inteligentes que tomen decisiones por cuenta propia. El resultado no sustituye pruebas físicas con iPhone, mediciones acústicas ni ensayos de aprendizaje con participantes. Las capturas del navegador emplean **cámara y micrófono sintéticos** y están rotuladas en la propia imagen.
+
+Para recuperar capturas: ingresar a [GitHub Actions](https://github.com/brunososal/echoes-webar/actions), abrir la ejecución más reciente de «ECHOES | QA visual y evidencia de sitio» y descargar el artefacto «echoes-capturas-publicadas». También puede ejecutarse manualmente desde el control `workflow_dispatch` si GitHub lo permite.
